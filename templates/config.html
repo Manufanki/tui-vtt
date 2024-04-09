@@ -1,0 +1,360 @@
+<form autocotuilete="off" onsubmit="event.preventDefault()">
+    <style>
+        .tuiConfigTab {
+            overflow: hidden;
+            display:flex;
+        }
+
+        .tuiConfigTab button {
+            background-color: #ccc;
+            float: left;
+            border: 1px solid black;
+            outline: none;
+            cursor: pointer;
+            transition: 0.3s;
+            border-radius: 5px 5px 0px 0px;
+        }
+
+        .tuiConfigTab button:hover {
+            background-color: #ddd;
+ 
+        }
+
+        .tuiConfigTab button.active {
+            background-color: inherit;
+            border: 1px solid black;
+            border-bottom: none;
+        }
+
+        .tuiConfigTabContent {
+            padding: 6px 12px;
+            border: 1px solid black;
+            border-top: none;
+            max-height: 700px;
+            overflow: auto;
+        } 
+
+        .tuiConfigFormElements{
+            width: 100%;
+            display: flex;
+            margin-bottom: 1px;
+            align-items: center;
+        }
+
+        .tuiConfigFormElements label {
+            width: 50%;
+        }
+
+        .tuiConfigFormElements .tuiConfigFormVal,
+        .tuiConfigFormElements .tuiConfigFormValRange,
+        .tuiConfigFormElements .tuiConfigFormBtn {
+            position: relative;
+            display: flex;
+            justify-content: flex-end;
+            width: 50%;
+        }
+
+        .tuiConfigFormElements .tuiConfigFormVal input[type='text'],
+        .tuiConfigFormElements .tuiConfigFormVal input[type='number'],
+        .tuiConfigFormElements .tuiConfigFormVal select,
+        .tuiConfigFormElements .tuiConfigFormValRange input[type='range'] {
+            flex-grow: 4;
+        }
+
+        .tuiConfigFormElements .tuiConfigFormValRange input[type='number'] {
+            width: 25%;
+            margin-left: 5px;
+        }
+
+        .tuiConfigFormElements .tuiConfigFormBtn button {
+            width: 100%;
+            margin-left: 5px;
+        }
+
+        .tuiConfigFormElements .tuiConfigFormBtn select {
+            min-width: 50%;
+            transform: translateY(10%);
+        }
+        
+        .tuiConfigNotes {
+            font-size: 0.85em;
+            font-style: italic;
+            color: grey;
+            margin-bottom: 5px;
+        }
+        
+        .tuiNotes {
+            font-size: 0.9em;
+            color: black;
+            margin-bottom: 5px;
+        }
+
+        table, th, td {
+          border: 1px solid black;
+        }
+        canvas {
+            border: 2px solid rgb(151, 149, 149);
+        }
+        .expandable {
+            cursor: pointer;
+        }
+        .collapsed {
+            display:none;
+        }
+        .expandableIcon {
+            border: none;
+        }
+
+        .settings {
+            display:flex; 
+            width:100%;
+        }
+        .settings label {
+            margin-right: auto;
+        }
+        .settings labelRight {
+            margin-left: auto;
+        }
+        .settings input[type="range"] {
+            width: 40%;
+        }
+        .settings input[type="text"] {
+            width: 10%;
+        }
+        .settings input[type="number"] {
+            width: 10%;
+        }
+        .settings input[type="checkbox"] {
+            margin-left: auto;
+        }
+        .settings select {
+            width: 25%;
+        }
+
+        .tuiConfigColumn {
+            float: left;
+            width: 48%;
+            margin: 1%;
+        }
+
+        .tuiConfigColumnLeft {
+            height: 425px;
+            overflow: auto;
+        }
+
+        .tuiConfigColumn  label {
+            width: 35%;
+        }
+
+        .tuiConfigColumn .tuiConfigFormVal,
+        .tuiConfigColumn .tuiConfigFormValRange,
+        .tuiConfigColumn .tuiConfigFormBtn {
+            width: 65%;
+        }
+
+        /* Clear floats after the columns */
+        .tuiConfigRow:after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+
+        
+
+    </style>
+
+
+
+    <script>
+        function openTab(evt, tabName) {
+            // Declare all variables
+            var i, tabcontent, tablinks;
+
+            // Get all elements with class="tabcontent" and hide them
+            tabcontent = document.getElementsByClassName("tuiConfigTabContent");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+
+            // Get all elements with class="tablinks" and remove the class "active"
+            tablinks = document.getElementsByClassName("tuiConfigTabLinks");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+
+            // Show the current tab, and add an "active" class to the button that opened the tab
+            document.getElementById(tabName).style.display = "block";
+            evt.currentTarget.className += " active";
+
+            // Resize window height to autofit
+            document.getElementById('TUI-VTT_Config').style.height='auto';
+        } 
+
+        for (let element of document.getElementsByClassName("expandable")) {
+            element.addEventListener("click",(event) => {
+                let thisElement = event.target;
+                if (event.target.className == "expandableIcon") thisElement = event.target.parentElement;
+                let nextElement = thisElement.nextElementSibling;
+                const collapse = nextElement.className == "collapsed" ? false : true;
+                nextElement.className = collapse ? "collapsed" : "";
+                //thisElement.children[0].src = collapse ? "modules/TUI-VTT/img/right.png" : "modules/TUI-VTT/img/down.png";
+            })
+        }
+
+        setTimeout(()=>{document.getElementById('TUI-VTT_Config').style.height='auto';},10);
+
+    </script>
+
+    <div class="tuiConfigTab">
+        <button type="button" class="tuiConfigTabLinks active" onclick="openTab(event, 'tuiConfigGeneral')">{{localize "TUI-VTT.Config.General"}}</button>
+        <button type="button" class="tuiConfigTabLinks" onclick="openTab(event, 'tuiConfigTouch')">{{localize "TUI-VTT.Config.Touch"}}</button>
+    </div>
+
+    <div id="tuiConfigGeneral" class="tuiConfigTabContent">
+
+        <p class="tuiNotes">{{localize "TUI-VTT.Config.General_Hint"}}</p>
+        <hr>
+
+        <!-- Target -->
+        <div class="tuiConfigFormElements">
+            <label for="tuiTargetName">{{localize "TUI-VTT.Config.TargetName"}}*</label>
+            <div class="tuiConfigFormVal">
+                <input type="text" id="tuiTargetName" value="{{targetName}}">
+            </div>
+        </div>
+        <p class="tuiConfigNotes">{{localize "TUI-VTT.Config.TargetName_Hint"}}</p>
+
+        <p class="tuiConfigNotes">{{localize "TUI-VTT.Config.MovementMethod_Hint"}}</p>
+
+        <!-- Deselect Token After Drop -->
+        <div class="tuiConfigFormElements">
+            <label for="tuiDeselect">{{localize "TUI-VTT.Config.Deselect"}}</label>
+            <div class="tuiConfigFormVal">
+                <input type="checkbox" id="tuiDeselect" {{#if deselect}}checked{{/if}}>
+            </div>
+        </div>
+        <p class="tuiConfigNotes">{{localize "TUI-VTT.Config.Deselect_Hint"}}</p>
+
+        <!-- Hide Display Elements -->
+        <div class="tuiConfigFormElements">
+            <label for="tuiMovementMarker">{{localize "TUI-VTT.Config.MovementMarker"}}</label>
+            <div class="tuiConfigFormVal">
+                <input type="checkbox" id="tuiMovementMarker" {{#if movementMarker}}checked{{/if}}>
+            </div>
+        </div>
+        <p class="tuiConfigNotes">{{localize "TUI-VTT.Config.MovementMarker_Hint"}}</p>
+        
+        <!-- Allow Navigation -->
+        <div class="tuiConfigFormElements">
+            <label for="tuiTouchNavigation">{{localize "TUI-VTT.Config.TouchNavigation"}}</label>
+            <div class="tuiConfigFormVal">
+                <input type="checkbox" id="tuiTouchNavigation" {{#if touchNavigation}}checked{{/if}}>
+            </div>
+        </div>
+        <p class="tuiConfigNotes">{{localize "TUI-VTT.Config.TouchNavigation_Hint"}}</p>
+
+        <!-- Non Owned Movement -->
+        <div class="tuiConfigFormElements">
+            <label for="tuiNonOwned">{{localize "TUI-VTT.Config.NonownedMovement"}}</label>
+            <div class="tuiConfigFormVal">
+                <input type="checkbox" id="tuiNonOwned" {{#if nonOwnedMovement}}checked{{/if}}>
+            </div>
+        </div>
+        <p class="tuiConfigNotes">{{localize "TUI-VTT.Config.NonownedMovement_Hint"}}</p>
+
+        <!-- Collision Prevention -->
+        <div class="tuiConfigFormElements">
+            <label for="tuiCollision">{{localize "TUI-VTT.Config.CollisionPrevention"}}</label>
+            <div class="tuiConfigFormVal">
+                <input type="checkbox" id="tuiCollision"  {{#if collision}}checked{{/if}}>
+            </div>
+        </div>
+        <p class="tuiConfigNotes">{{localize "TUI-VTT.Config.CollisionPrevention_Hint"}}</p>
+
+        <!-- Hide Display Elements -->
+        <div class="tuiConfigFormElements">
+            <label for="tuiHideDisplay">{{localize "TUI-VTT.Config.HideDisplay"}}*</label>
+            <div class="tuiConfigFormVal">
+                <input type="checkbox" id="tuiHideDisplay"  {{#if hideElements}}checked{{/if}}>
+            </div>
+        </div>
+        <p class="tuiConfigNotes">{{localize "TUI-VTT.Config.HideDisplay_Hint"}}</p> -->
+        
+        <!-- Block Interaction -->
+        <div class="tuiConfigFormElements">
+            <label for="tuiBlockInteraction">{{localize "TUI-VTT.Config.BlockInteraction"}}</label>
+            <div class="tuiConfigFormVal">
+                <input type="checkbox" id="tuiBlockInteraction"  {{#if blockInteraction}}checked{{/if}}>
+            </div>
+        </div>
+        <p class="tuiConfigNotes">{{localize "TUI-VTT.Config.BlockInteraction_Hint"}}</p>
+
+    </div>    
+    <div id="tuiConfigTouch" class="tuiConfigTabContent" style="display: none">
+        
+        <p class="tuiNotes">{{localize "TUI-VTT.Config.Touch_Hint"}}</p>
+
+        <hr>
+
+        <!-- Touch Timeout -->
+        <div class="tuiConfigFormElements">
+            <label for="tuiTouchTimeout">{{localize "TUI-VTT.Config.TouchTimeout"}}</label>
+            <div class="tuiConfigFormValRange">
+                <input type="range" id="tuiTouchTimeout" min=10 max=5000 step=10 value={{touchTimeout}}>
+                <input type="number" id="tuiTouchTimeoutNumber" value={{touchTimeout}}>
+            </div>
+        </div>
+        <p class="tuiConfigNotes">{{localize "TUI-VTT.Config.TouchTimeout_Hint"}}</p>
+
+        <!-- Tap Timeout -->
+        <div class="tuiConfigFormElements">
+            <label for="tuiTapTimeout">{{localize "TUI-VTT.Config.TapTimeout"}}</label>
+            <div class="tuiConfigFormValRange">
+                <input type="range" id="tuiTapTimeout" min=10 max=5000 step=10 value={{tapTimeout}}>
+                <input type="number" id="tuiTapTimeoutNumber" value={{tapTimeout}}>
+            </div>
+        </div>
+        <p class="tuiConfigNotes">{{localize "TUI-VTT.Config.TapTimeout_Hint"}}</p>
+
+        <!-- X Scale -->
+        <div class="tuiConfigFormElements">
+            <label for="tuiTouchScaleX">{{localize "TUI-VTT.Config.ScaleX"}}</label>
+            <div class="tuiConfigFormValRange">
+                <input type="range" id="tuiTouchScaleX" min=0 max=2 step=0.01 value={{touchScaleX}}>
+                <input type="number" id="tuiTouchScaleXNumber" value={{touchScaleX}}>
+            </div>
+        </div>
+        <p class="tuiConfigNotes">{{localize "TUI-VTT.Config.ScaleX_Hint"}}</p>
+
+        <!-- Y Scale -->
+        <div class="tuiConfigFormElements">
+            <label for="tuiTouchScaleY">{{localize "TUI-VTT.Config.ScaleY"}}</label>
+            <div class="tuiConfigFormValRange">
+                <input type="range" id="tuiTouchScaleY" min=0 max=2 step=0.01 value={{touchScaleY}}>
+                <input type="number" id="tuiTouchScaleYNumber" value={{touchScaleY}}>
+            </div>
+        </div>
+        <p class="tuiConfigNotes">{{localize "TUI-VTT.Config.ScaleY_Hint"}}</p>
+
+         <!-- ZoomFactor -->
+         <div class="tuiConfigFormElements">
+            <label for="tuiTouchZoomFactor">{{localize "TUI-VTT.Config.ZoomFactor"}}</label>
+            <div class="tuiConfigFormValRange">
+                <input type="range" id="tuiTouchZoomFactor" min=0.1 max=1 step=0.05 value={{zoomFactor}}>
+                <input type="number" id="tuiTouchZoomFactorNumber" value={{zoomFactor}}>
+            </div>
+        </div>
+        <p class="tuiConfigNotes">{{localize "TUI-VTT.Config.ZoomFactor_Hint"}}</p>
+        
+        <!-- RotationThreshold -->
+        <div class="tuiConfigFormElements">
+            <label for="tuiTouchRotationThreshold">{{localize "TUI-VTT.Config.RotationThreshold"}}</label>
+            <div class="tuiConfigFormValRange">
+                <input type="range" id="tuiTouchRotationThreshold" min=0 max=100 step=5 value={{rotationThreshold}}>
+                <input type="number" id="tuiTouchRotationThresholdNumber" value={{rotationThreshold}}>
+            </div>
+        </div>
+        <p class="tuiConfigNotes">{{localize "TUI-VTT.Config.RotationThreshold_Hint"}}</p>
+    </div>
+</form>
+
