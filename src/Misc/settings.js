@@ -1,4 +1,6 @@
 import { moduleName } from "../../tui-vtt.js";
+import { PatternTamplate } from "../Triangle/PatternTamplate.js";
+import { waitForPatternTouchs } from "../analyzeTouch.js";
 
 export const registerSettings = function(){
      /**
@@ -122,17 +124,12 @@ export const registerSettings = function(){
         type: Boolean
     });
 
-    /**
-     * Sets the size of the pen menu relative to the grid size
-     */
-    game.settings.register(moduleName, 'MenuSize', {
-        default: 2.5,
-        type: Number,
-        scope: 'world',
-        range: { min: 0, max: 5, step: 0.1 },
-        config: false
+    game.settings.register(moduleName,'patternSetup', {
+        scope: "world",
+        config: false,
+        type: Array,
+        default: []
     });
-
     
     /**
      * Sets the name of the target client (who has the TV connected)
@@ -151,6 +148,13 @@ export const registerSettings = function(){
         default: false,
         type: Boolean
     });
+
+    game.settings.register(moduleName, "PatternId", {
+        scope: "world",
+        config: true,
+        type: Number,
+        default: -1
+      });
 }
 
 
@@ -159,29 +163,30 @@ export class tuiConfig extends FormApplication{
     constructor(data, options){
         super(data, options);
         this.restart = false;
-        this.baseSettings = [];
+        this.patternSettings = [];
         this.configOpen = false;
         this.blockInteraction = true;
     }
-
+ /**
+     * Default Options for this FormApplication
+     */
     static get defaultOptions() {
         return mergeObject(super.defaultOptions, {
-            id: "TUI-VTT_Config",
+            id: "tui-vtt_Config",
             title: game.i18n.localize("TUI-VTT.Config.Title"),
             template: "./modules/tui-vtt/templates/config.html",
-            with: 700,
+            width: 700,
             height: 'auto'
         });
     }
-    
     setConfigOpen(open){
         this.data.open = open;
     }
 
     getData()
     {
-        //this.baseSettings = game.settings.get(moduleName, 'baseSetup');
-         let data = {
+        this.patternSettings = game.settings.get(moduleName, 'patternSetup');
+        let data = {
             blockInteraction : this.blockInteraction,
             targetName: game.settings.get(moduleName,'TargetName'),
             deselect: game.settings.get(moduleName,'deselect'),
@@ -197,19 +202,20 @@ export class tuiConfig extends FormApplication{
             zoomFactor: game.settings.get(moduleName,'zoomFactor'),
             rotationThreshold: game.settings.get(moduleName,'rotationThreshold'),
 
-            //baseSetup : this.baseSettings,
+            patternSetup : this.patternSettings,
         }
         return data;
     }
 
     onRendered(html) {
+        this.buildPatternTable();
         //Refresh browser window on close if required
-        document.getElementById('TUI-VTT_Config').getElementsByClassName('header-button close')[0].addEventListener('click', async event => { 
+        document.getElementById('tui-vtt_Config').getElementsByClassName('header-button close')[0].addEventListener('click', async event => { 
             if (this.restart) {
                 const payload = {
                     msgType: "refresh"
                 }
-                await game.socket.emit(`module.TUI-VTT`, payload);
+                await game.socket.emit(`module.tui-vtt`, payload);
                 window.location.reload(); 
             }
         });
@@ -288,8 +294,20 @@ export class tuiConfig extends FormApplication{
              html.find("input[id=tuiTouchRotationThreshold]")[0].value = event.target.value;
              this.setSettings('rotationThreshold', event.target.value);
          });
+
+         // --- Pattern Setup settings, more in buildPatternTable() ---
+        html.find("button[name='addPatternConfig']").on('click', async event => {
+            this.patternSettings.push(
+                new PatternTamplate([{x:0,y:0},{x:0,y:0},{x:0,y:0}],-1)
+            )
+            await this.setSettings('patternSetup',this.patternSettings);
+            this.buildPatternTable();
+        })
+
  
     }
+
+    
 
     async setSettings(settingId,val,refresh=false) {
         const sett = game.settings.settings.get(`${moduleName}.${settingId}`);
@@ -301,7 +319,67 @@ export class tuiConfig extends FormApplication{
                 settingId,
                 value: val
             }
-            game.socket.emit(`module.TUI-VTT`, payload);
+            game.socket.emit(`module.tui_vtt`, payload);
         }
+    }
+
+    /**
+     * Build the table for the Pattern data
+     */
+    buildPatternTable() {
+        let html = '';
+        for (let i=0; i<this.patternSettings.length; i++) {
+            const pattern = this.patternSettings[i];
+            html += `
+            <div style="display:flex; width:100%">
+                <input type="number" name="tuiPatternID" style="width:10%; margin-right:0.5%" id="tuiPatternID-${i}" value="${pattern.id}">
+                <input type="number" name="tuiRotation" style="width:40%; margin-right:0.5%" id="tuiRotation-${i}" value="${pattern.rotationAngle}">
+                <input type="number" name="tuidetectionThreshold" style="width:40%; margin-right:5%" id="tuidetectionThreshold-${i}" value="${pattern.detectionThreshold}">
+                <button type="button" name="tuiSetPatternBtn" style="width:5%; margin-right:2.5%" id="tuiSetPatternBtn-${i}"><i class="fas fa-table"></i></button>
+                <button type="button" name="tuiDeletePatternBtn" style="width:5%" id="tuiDeletePatternBtn-${i}"><i class="fas fa-trash"></i></button>
+            </div>
+            `
+        }
+       
+        const tableElement = document.getElementById('tuiPatternList');
+        tableElement.innerHTML = html;
+
+        for (let elmnt of document.getElementsByName('tuiPatternID')) 
+            elmnt.addEventListener('change', event => {
+                const targetId = (event.target.id ? event.target.id : event.target.parentElement.id).replace('tuiPatternID-', '');
+                this.patternSettings[targetId].id = event.target.value;
+                this.setSettings('patternSetup',this.patternSettings);
+            })
+        for (let elmnt of document.getElementsByName('tuiRotation')) 
+            elmnt.addEventListener('change', event => {
+                const targetId = (event.target.id ? event.target.id : event.target.parentElement.id).replace('tuiRotation-', '');
+                this.patternSettings[targetId].rotationAngle = event.target.value;
+                this.setSettings('patternSetup',this.patternSettings);
+            })
+        for (let elmnt of document.getElementsByName('tuidetectionThreshold')) 
+            elmnt.addEventListener('change', event => {
+                const targetId = (event.target.id ? event.target.id : event.target.parentElement.id).replace('tuidetectionThreshold-', '');
+                this.patternSettings[targetId].detectionThreshold = event.target.value;
+                this.setSettings('patternSetup',this.patternSettings);
+            })
+        for (let elmnt of document.getElementsByName('tuiSetPatternBtn')) 
+            elmnt.addEventListener('click', async event => {
+                
+                const targetId = (event.target.id ? event.target.id : event.target.parentElement.id).replace('tuiSetPatternBtn-', '');
+                const id = this.patternSettings[targetId].id;
+                const input = await waitForPatternTouchs(id, this.patternSettings[targetId].detectionThreshold);
+                if(input.id !== id) return;
+                this.patternSettings[targetId] = input; // Here, "this" might not refer to the correct object
+                this.setSettings('patternSetup', this.patternSettings);
+                this.buildPatternTable();
+
+            })
+        for (let elmnt of document.getElementsByName('tuiDeletePatternBtn')) 
+            elmnt.addEventListener('click', async event => {
+                const targetId = (event.target.id ? event.target.id : event.target.parentElement.id).replace('tuiDeletePatternBtn-', '');
+                this.patternSettings.splice(targetId,1)
+                await this.setSettings('patternSetup',this.patternSettings);
+                this.buildPatternTable();
+            })
     }
 }

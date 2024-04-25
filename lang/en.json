@@ -46,6 +46,16 @@
     "TUI-VTT.Config.ZoomFactor": "Zoom Factor",
     "TUI-VTT.Config.ZoomFactor_Hint": "Increases the zoom speed.",
     "TUI-VTT.Config.RotationThreshold": "Rotate Token while dragging",
-    "TUI-VTT.Config.RotationThreshold_Hint": "Rotates the token when it is dragged over a cirtain threshold."
+    "TUI-VTT.Config.RotationThreshold_Hint": "Rotates the token when it is dragged over a cirtain threshold.",
 
+    "TUI-VTT.Config.PatternSetup": "Pattern Setup",
+    "TUI-VTT.Config.PatternSetup_Hint": "Configure patterns to be linked to specific tokens or actors.",
+    "TUI-VTT.Config.TemplateId": "ID",
+    "TUI-VTT.Config.Rotation": "Initial Rotation",
+    "TUI-VTT.Config.DetectionThreshold": " Detection Threshold", 
+
+    "TUI-VTT.Config.Data": "Detect",
+    "TUI-VTT.Config.Delete": "Delete",
+
+    "TUI-VTT.Token.PatternTitle": "Pattern"
 }

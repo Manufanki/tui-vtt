@@ -5,103 +5,204 @@ export class PatternTamplate{
         if (touchPoints.length !== 3) {
             throw new Error("Triangle must be initialized with exactly 3 touch points.");
         }
-        this.sortedVertices = sortPointsCounterclockwise(touchPoints);
+        this.sortedVertices = sortVertices(touchPoints);
+        this.center = findCentroid(this.sortedVertices);
         
-        const sideLengths = [
-            Math.sqrt(Math.pow(this.sortedVertices[1][0] - this.sortedVertices[0][0], 2) + Math.pow(this.sortedVertices[1][1] - this.sortedVertices[0][1], 2)),
-            Math.sqrt(Math.pow(this.sortedVertices[2][0] - this.sortedVertices[1][0], 2) + Math.pow(this.sortedVertices[2][1] - this.sortedVertices[1][1], 2)),
-            Math.sqrt(Math.pow(this.sortedVertices[0][0] - this.sortedVertices[2][0], 2) + Math.pow(this.sortedVertices[0][1] - this.sortedVertices[2][1], 2))
+        this.sideLengths = [
+            calculateDistance(this.sortedVertices[0], this.sortedVertices[1]),
+            calculateDistance(this.sortedVertices[1], this.sortedVertices[2]),
+            calculateDistance(this.sortedVertices[2], this.sortedVertices[0])
         ];
-        
+            
         this.featureVectors = [
-            sideLengths,
-            [sideLengths[1], sideLengths[2], sideLengths[0]],
-            [sideLengths[2], sideLengths[0], sideLengths[1]]
+            this.sideLengths,
+            [this.sideLengths[1], this.sideLengths[2], this.sideLengths[0]],
+            [this.sideLengths[2], this.sideLengths[0], this.sideLengths[1]]
         ];
         this.id = id;
-        this.rotationAngle = 0;
+        this.forwardPointSideLength =[this.sideLengths[0],this.sideLengths[1]];    
+        this.forwardVector = {x: this.center.x - this.sortedVertices[0].x, y: this.center.y - this.sortedVertices[0].y};
+        this.rotationAngle = angleBetweenVectors(this.forwardVector.x,this.forwardVector.y)
 
-        this.marker1 = new tokenMarker();
-        this.marker2 = new tokenMarker();
-        this.marker3 = new tokenMarker();
-        canvas.stage.addChild(this.marker1);
-        canvas.stage.addChild(this.marker2);
-        canvas.stage.addChild(this.marker3);
-        this.marker1.init();
-        this.marker2.init();
-        this.marker3.init();
-
+        this.detectionThreshold = 50;
     }
 
     debug(){
-        console.log("TUI_Feature Vector:", this.featureVector);
-        console.log("TUI_Sorted Vertices:", this.sortedVertices);
-        const color1 =  "0xFF0000";
-        const color2 =  "0x00FF00";
-        const color3 =  "0x0000FF";
+        console.log("TUI_Feature Vector:", this.featureVectors);
+    }
 
-        this.marker1.show()
-        this.marker2.show()
-        this.marker3.show()
+    showMarkers() {
+        const color1 = 0xFF0000;
+        const color2 = 0x00FF00;
+        const color3 = 0x0000FF;
+
+        this.marker1.show();
+        this.marker2.show();
+        this.marker3.show();
+
+        // Convert vertex coordinates to screen space
+        const vertex1 = this.sortedVertices[0];
+        const vertex2 = this.sortedVertices[1];
+        const vertex3 = this.sortedVertices[2];
+
+        // Update marker positions
         this.marker1.updateMarker({
-            x: this.sortedVertices[0].x,
-            y: this.sortedVertices[0].y,
+            x: vertex1.x,
+            y: vertex1.y,
             width: canvas.dimensions.size,
             height: canvas.dimensions.size,
             color: color1
-        })
+        });
         this.marker2.updateMarker({
-            x: this.sortedVertices[1].x,
-            y: this.sortedVertices[1].y,
+            x: vertex2.x,
+            y: vertex2.y,
             width: canvas.dimensions.size,
             height: canvas.dimensions.size,
             color: color2
-        })
+        });
         this.marker3.updateMarker({
-            x: this.sortedVertices[2].x,
-            y: this.sortedVertices[2].y,
+            x: vertex3.x,
+            y: vertex3.y,
             width: canvas.dimensions.size,
             height: canvas.dimensions.size,
             color: color3
-        })
+        });
+    }
+
+    hideMarkers() {
+        // Hide markers
+        this.marker1.hide();
+        this.marker2.hide();
+        this.marker3.hide();
+
+        
+    }
+    hideLines() {
+        // Remove lines
+        this.lines.forEach(line => canvas.stage.removeChild(line)); // Remove each line from canvas
+        this.lines = []; // Clear the lines array
+    }
+
+    drawLine(point1, point2) {
+        // Draw line between two points
+        const line = new PIXI.Graphics();
+        line.lineStyle(2, 0xFFFFFF, 1); // White color, thickness 2
+        line.moveTo(point1[0], point1[1]);
+        line.lineTo(point2[0], point2[1]);
+        canvas.stage.addChild(line);
+        this.lines.push(line); // Store reference to the line
+    }
+
+    getPointByTwoSides(side1, side2 ) {
+
+        if(closestSideLength(side1,this.sideLengths, 0) &&closestSideLength(side2,this.sideLengths, 1)) {
+            return this.sortedVertices[1];
+        }
+        if(closestSideLength(side1,this.sideLengths, 1) &&closestSideLength(side2,this.sideLengths, 2)) {
+            return this.sortedVertices[2];
+        }
+        if(closestSideLength(side1,this.sideLengths, 2) &&closestSideLength(side2,this.sideLengths, 0)) {
+            return this.sortedVertices[0];
+        }
+        return this.sortedVertices[0];
         
     }
 }
 
-function sortPointsCounterclockwise(points) {
-    // Calculate centroid of the triangle
-    const centroid = points.reduce((acc, point) => [acc[0] + point[0], acc[1] + point[1]], [0, 0]);
-    centroid[0] /= points.length;
-    centroid[1] /= points.length;
-    
-    // Sort points counterclockwise based on their angle relative to the centroid
-    points.sort((a, b) => {
-        const angleA = Math.atan2(a[1] - centroid[1], a[0] - centroid[0]);
-        const angleB = Math.atan2(b[1] - centroid[1], b[0] - centroid[0]);
-        return angleA - angleB;
-    });
+function closestSideLength(side, sideLengths, index) {
 
+    var distance = 100000;
+    var closestIndex = -1;
+    for (let i = 0; i < sideLengths.length; i++) {
+        var tempDistance = Math.abs(side - sideLengths[i])
+        if(tempDistance < distance) 
+        {
+            distance = tempDistance;
+            closestIndex = i;
+        }
+
+    }
+
+    if(index == closestIndex)
+    {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
+
+function calculateDistance(point1, point2) {
+    const deltaX = point2.x - point1.x;
+    const deltaY = point2.y - point1.y;
+    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    return distance;
+}
+
+function findCentroid(points) {
+    let x = 0;
+    let y = 0;
+    for (let p of points) {
+        x += p.x;
+        y += p.y;
+    }
+    const center = { x: 0, y: 0 };
+    center.x = x / points.length;
+    center.y = y / points.length;
+    return center;
+}
+
+function sortVertices(points) {
+    // Get centroid
+    const center = findCentroid(points);
+    points.sort((a, b) => {
+        const a1 = (Math.atan2(a.x - center.x, a.y - center.y) * 180 / Math.PI + 360) % 360;
+        const a2 = (Math.atan2(b.x - center.x, b.y - center.y) * 180 / Math.PI + 360) % 360;
+        return a1 - a2;
+    });
     return points;
 }
 
-function recognizeTriangle(touchPoints, patternTemplates) {
-    let sortedVertices = touchPoints.sort((a, b) => Math.atan2(a[1], a[0]) - Math.atan2(b[1], b[0]));
-    // Calculate distance between f and each template
-    let minDistance = Infinity;
-    let minTemplateId = null;
-    patternTemplates.forEach((template) => {
-        const distance = Math.sqrt(template.reduce((acc, val, idx) => acc + Math.pow(val - featureVector[idx], 2), 0));
-        if (distance < minDistance) {
-            minDistance = distance;
-            minTemplateId = template.id;
-        }
-    });
+export function recognizeTriangle(featureVector, featureVectors) {
+    var d0 = euclideanNorm(featureVector.map((value, index) => value - featureVectors[0][index]));
+    var d1 = euclideanNorm(featureVector.map((value, index) => value - featureVectors[1][index]));
+    var d2 = euclideanNorm(featureVector.map((value, index) => value - featureVectors[2][index]));
 
-    // Obtain rotation angle of the triangular pattern
-    const xAxixVector = [patternTemplates[minTemplateId][0], patternTemplates[minTemplateId][1]];
-    const origin = [sortedVertices.reduce((acc, val) => acc + val[0], 0) / 3, sortedVertices.reduce((acc, val) => acc + val[1], 0) / 3];
-    const xAxixAngle = Math.atan2(xAxixVector[1] - origin[1], xAxixVector[0] - origin[0]);
-    const rotationAngle = (xAxixAngle * 180) / Math.PI;
 
-    return [minTemplateId, rotationAngle];
+    if(d0 < d1 && d0 < d2) 
+    {
+        return [d0,2];
+    }
+    if(d1 < d0 && d1 < d2)
+    {
+        return [d1,1];
+    }
+    if(d2 < d1 && d2 < d0)
+    {
+        return [d2,0];
+    }
+    
+    return[1000,0]
+
+}
+
+function euclideanNorm(vector) {
+    let sumOfSquares = vector.reduce((accumulator, currentValue) => accumulator + Math.pow(currentValue, 2), 0);
+    return Math.sqrt(sumOfSquares);
+}
+
+function angleBetweenVectors(x, y) {
+    var radians = Math.atan2(y, x);
+    var degrees = radians * (180 / Math.PI);
+    return degrees;
+}
+
+export function calculateRotation(originalTemplate, rotatedTemplate, templateId){
+    var rotatedPoint = rotatedTemplate.sortedVertices[templateId];
+
+    var forwardVector = {x: rotatedTemplate.center.x - rotatedPoint.x, y: rotatedTemplate.center.y - rotatedPoint.y};
+    
+    var angle = originalTemplate.rotationAngle + angleBetweenVectors(forwardVector.x, forwardVector.y);
+    return angle;
 }

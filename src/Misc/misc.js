@@ -1,5 +1,5 @@
 import {moduleName} from '../../tui-vtt.js';
-
+import { PatternFlags } from './PatternFlags.js';
 
 let debugSettings = {
     wsRaw: false,
@@ -77,7 +77,18 @@ export function compatibleCore(compatibleVersion){
     else
         return undefined;
 }
+export function findTokenById(id){
 
+  for (let token of canvas.tokens.placeables){
+      if (!token.can(game.user,"control")) {
+        if (!game.settings.get(moduleName,'EnNonOwned') || !token.visible) continue;
+      }
+      if(PatternFlags.PatternId(token.document) == id){
+        return token
+      }
+  }
+  return undefined;
+}
 /*
  * tokenMarker draws a rectangle at the target position for the token
  */

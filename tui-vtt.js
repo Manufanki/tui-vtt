@@ -1,5 +1,7 @@
 import { tuiConfig, registerSettings } from "./src/Misc/settings.js";
-import { initializeTouchTokens, analyzeTouch } from "./src/analyzeTouch.js";
+import { initializeTuiTokens, analyzeTouch } from "./src/analyzeTouch.js";
+
+import {PatternSheetSettings} from "./src/Misc/PatternSheetSettings.js";
 
 //Global variables
 export const moduleName = "tui-vtt";
@@ -77,12 +79,12 @@ Hooks.on('ready',()=>{
     
     if (game.user.isGM) game.settings.set(moduleName,'menuOpen',false);
 
-    initializeTouchTokens();
+    initializeTuiTokens();
 });
 
 Hooks.on('renderSidebarTab',(app,html)=>{
-    //enableModule = game.user.name == game.settings.get(moduleName,'TargetName');
-    if (!game.user.isGM) return;
+    enableModule = game.user.name == game.settings.get(moduleName,'TargetName');
+    //if (!game.user.isGM) return;
 
 
     if(app.options.id == 'settings'){
@@ -155,3 +157,6 @@ Hooks.on('renderPlayerList', (app, html) => {
         html.hide();
     }
 });
+
+Hooks.on("renderTokenConfig", (app, html, data) => PatternSheetSettings.SheetSetting(app, html, data));
+

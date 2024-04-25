@@ -159,6 +159,25 @@
             clear: both;
         }
 
+
+        .tuiPatternTableId {
+            flex: 0 0 10%;
+        }
+        .tuiPatternTableLink {
+            text-align: center;
+            flex: 0 0 30%;
+        }
+        header.tuiPatternTableHeader {
+            background: rgba(0, 0, 0, 0.5);
+            width: 100%;
+            padding: 5px;
+            border: 1px solid #191813;
+            text-align: left;
+            font-weight: bold;
+            color: #f0f0e0;
+            font-weight: bold;
+            text-shadow: 1px 1px #000;
+        }
         
 
     </style>
@@ -187,7 +206,7 @@
             evt.currentTarget.className += " active";
 
             // Resize window height to autofit
-            document.getElementById('TUI-VTT_Config').style.height='auto';
+            document.getElementById('tui-vtt_Config').style.height='auto';
         } 
 
         for (let element of document.getElementsByClassName("expandable")) {
@@ -201,13 +220,15 @@
             })
         }
 
-        setTimeout(()=>{document.getElementById('TUI-VTT_Config').style.height='auto';},10);
+        setTimeout(()=>{document.getElementById('tui-vtt_Config').style.height='auto';},10);
 
     </script>
 
     <div class="tuiConfigTab">
         <button type="button" class="tuiConfigTabLinks active" onclick="openTab(event, 'tuiConfigGeneral')">{{localize "TUI-VTT.Config.General"}}</button>
         <button type="button" class="tuiConfigTabLinks" onclick="openTab(event, 'tuiConfigTouch')">{{localize "TUI-VTT.Config.Touch"}}</button>
+        <button type="button" class="tuiConfigTabLinks tuiBeta" onclick="openTab(event, 'tuiConfigPattern')">{{localize "TUI-VTT.Config.PatternSetup"}}</button>
+
     </div>
 
     <div id="tuiConfigGeneral" class="tuiConfigTabContent">
@@ -355,6 +376,30 @@
             </div>
         </div>
         <p class="tuiConfigNotes">{{localize "TUI-VTT.Config.RotationThreshold_Hint"}}</p>
+    </div>
+
+    <div id="tuiConfigPattern" class="tuiConfigTabContent" style="display: none">
+        
+        <p class="tuiNotes">{{localize "TUI-VTT.Config.PatternSetup_Hint"}}</p>
+        
+        <header class="tuiPatternTableHeader flexrow" style="margin-bottom:5px;width:100%">
+            <label class="tuiPatternTableId">{{localize "TUI-VTT.Config.TemplateId"}}</label>
+
+            <label style="width:40%; margin-right:0.5%">{{localize "TUI-VTT.Config.Rotation"}}</label>
+            <label style="width:40%; margin-right:0.5%">{{localize "TUI-VTT.Config.DetectionThreshold"}}</label>
+            <label class="tuiPatternTableId">{{localize "TUI-VTT.Config.Data"}}</label>
+            <label class="tuiPatternTableId">{{localize "TUI-VTT.Config.Delete"}}</label>
+
+        </header>
+    
+        <div id="tuiPatternList">
+        </div>
+        
+        
+        <button type="button" name="addPatternConfig" style="width:5%; float:right; margin-right:3.8%"><i class="fas fa-plus"></i></button>
+
+        <br><br>
+        <hr>        
     </div>
 </form>
 

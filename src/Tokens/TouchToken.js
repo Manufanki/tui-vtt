@@ -2,15 +2,19 @@ import { moduleName } from "../../tui-vtt.js";
 import { tokenMarker, findToken, debug, compatibleCore } from "../Misc/misc.js";
 
 export class TouchToken{
-    constructor() {
+    constructor(id, token = undefined) {
+        this.id = id;
         this.controlledToken = undefined;
         this.currentPosition;
-        this.token = undefined;
+        this.token = token;
         this.rawCoordinated;
         this.previousPosition;
-        this.rotationPosiiton;
+        this.rotationPosition;
         this.rotationThreshold;
         this.rotationHistory = [];
+        this.rotationMethod = true;
+        this.rotationAngle = 0;
+        this.patternTouchIds = [];
 
         this.marker = new tokenMarker();
         canvas.stage.addChild(this.marker);
@@ -87,42 +91,12 @@ export class TouchToken{
         }
 
         if (collision == false) {
-            // Rotate the token
-            if(!this.token.document.lockRotation){
-                if (this.rotationPosition == undefined) this.rotationPosition = coords;
-                if(Math.abs(this.rotationPosition.x - coords.x) > this.rotationThreshold || Math.abs(this.rotationPosition.y - coords.y) > this.rotationThreshold)
-                {
-
-                    var differenceX = this.rotationPosition.x - coords.x;
-                    var differenceY = this.rotationPosition.y - coords.y;
-                    var angleRadians = Math.atan2(differenceY , differenceX);
-                    
-                    if(this.rotationHistory.length > 5) this.rotationHistory.shift();
-                    this.rotationHistory.push(angleRadians);
-
-                    let sumSines = 0;
-                    let sumCosines = 0;
-                    for (const angle of this.rotationHistory) {
-                        sumSines += Math.sin(angle);
-                        sumCosines += Math.cos(angle);
-                    }
-                    
-                    var averageSine = sumSines / this.rotationHistory.length;
-                    var averageCosine = sumCosines / this.rotationHistory.length;
-                    
-                    // Calculate the average angle in radians and convert to degrees
-                    var averageAngleRadians = Math.atan2(averageSine, averageCosine);
-                    var averageAngleDegrees = (averageAngleRadians * 180) / Math.PI;
-                
-                    this.token.data.rotation = averageAngleDegrees + 90;
-                    
-                }
+            if(this.rotationMethod)
+                await this.rotateTokenByDragging(coords,currentPos);
+            else{
+                await this.rotateTokenByPattern();
             }
-            this.previousPosition = currentPos; // Update the previous position
-            this.rotationPosition = coords; // Update the rotation position
-
-
-            //Check surrounding Grid
+                //Check surrounding Grid
             if (this.token.can(game.user,"control")) 
             {
                 let surroundingGridCollisions = this.checkSurroundingGridCollision(coords,currentPos);
@@ -141,14 +115,10 @@ export class TouchToken{
                 if (!collisions[2] && !collisions[3]) moveY = true;
                 
                 if (moveX && moveY) {
-                    if (compatibleCore('10.0')) {
-                        this.token.document.x = coords.x;
-                        this.token.document.y = coords.y;
-                    }
-                    else {
-                        this.token.data.x = coords.x;
-                        this.token.data.y = coords.y;
-                    }
+
+                    this.token.document.x = coords.x;
+                    this.token.document.y = coords.y;
+
                     
                     //this.currentPosition = currentPos;
                 }
@@ -215,8 +185,49 @@ export class TouchToken{
                     color: color
                 })
         }
+    }
 
-       
+    async rotateTokenByDragging(coords, currentPos){
+        // Rotate the token
+        if(!this.token.document.lockRotation){
+            if (this.rotationPosition == undefined) this.rotationPosition = coords;
+            if(Math.abs(this.rotationPosition.x - coords.x) > this.rotationThreshold || Math.abs(this.rotationPosition.y - coords.y) > this.rotationThreshold)
+            {
+
+                var differenceX = this.rotationPosition.x - coords.x;
+                var differenceY = this.rotationPosition.y - coords.y;
+                var angleRadians = Math.atan2(differenceY , differenceX);
+                
+                if(this.rotationHistory.length > 5) this.rotationHistory.shift();
+                this.rotationHistory.push(angleRadians);
+
+                let sumSines = 0;
+                let sumCosines = 0;
+                for (const angle of this.rotationHistory) {
+                    sumSines += Math.sin(angle);
+                    sumCosines += Math.cos(angle);
+                }
+                
+                var averageSine = sumSines / this.rotationHistory.length;
+                var averageCosine = sumCosines / this.rotationHistory.length;
+                
+                // Calculate the average angle in radians and convert to degrees
+                var averageAngleRadians = Math.atan2(averageSine, averageCosine);
+                var averageAngleDegrees = (averageAngleRadians * 180) / Math.PI;
+            
+                this.token.document.rotation = averageAngleDegrees +90;
+                
+            }
+        }
+        this.previousPosition = currentPos; // Update the previous position
+        this.rotationPosition = coords; // Update the rotation position
+    }
+
+    async rotateTokenByPattern(){
+        // Rotate the token
+        if(!this.token.document.lockRotation){
+            this.token.document.rotation = this.rotationAngle;
+        }
     }
 
       /*
@@ -273,7 +284,7 @@ export class TouchToken{
         const spacer = (compatibleCore('10.0') ? canvas.scene.gridType : canvas.scene.data.gridType) === CONST.GRID_TYPES.SQUARE ? 1.41 : 1;
         //If space is already occupied
         if (findToken(this.token.getCenter(coords.x,coords.y),(spacer * Math.min(canvas.grid.w, canvas.grid.h))/2,this.token) != undefined) {
-            ui.notifications.warn("Material Plane: "+game.i18n.localize("MaterialPlane.Notifications.SpaceOccupied"));
+            ui.notifications.warn("Material Plane: "+game.i18n.localize("tui-vtt.Notifications.SpaceOccupied"));
             let ray = new Ray({x: this.originPosition.x, y: this.originPosition.y}, {x: coords.x, y: coords.y});
 
             //Code below modified from _highlightMeasurement() in ruler class in core foundry  
@@ -327,16 +338,16 @@ export class TouchToken{
      /**
      * Calculate the difference between the old coordinates of the token and the last measured coordinates, and move the token there
      */
-    async dropTouchToken(release = game.settings.get(moduleName,'deselect')){
+    async dropToken(release = game.settings.get(moduleName,'deselect')){
         
         //If no token is controlled, return
         if (this.token == undefined) return false;
         
-        //this.moveToken(this.currentPosition)
+        this.moveToken(this.currentPosition)
         let newCoords = {
             x: (this.currentPosition.x-canvas.dimensions.size/2),
             y: (this.currentPosition.y-canvas.dimensions.size/2),
-            rotation: compatibleCore('10.0') ? this.token.document.rotation : this.token.data.rotation
+            rotation: compatibleCore('10.0') ? this.token.document.rotation : this.token.document.rotation
         }
 
         
@@ -362,7 +373,9 @@ export class TouchToken{
         //Get the coordinates of the center of the grid closest to the coords
         if (this.token.can(game.user,"control")) {
             await this.token.document.update(newCoords);
-            if (compatibleCore('10.0')) CanvasAnimation.terminateAnimation(this.token.animationName);
+            
+            if(this.token.animationName != undefined)
+                CanvasAnimation.terminateAnimation(this.token.animationName);
             debug('dropToken',`Token ${this.token.name}, Dropping at (${newCoords.x}, ${newCoords.y})`)
         }
         else {
