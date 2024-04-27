@@ -89,6 +89,51 @@ export function findTokenById(id){
   }
   return undefined;
 }
+
+export function removeFromArrayById(array, id){
+  if(array.some(t => t.id == id)) {
+      const index = array.findIndex(t => t.id == id);
+      array.splice(index,1);
+  }
+  return array;
+}
+
+export function removeFromArrayByValue(array, value)
+{ 
+  if(array.some(t => t == value)) {
+      const index = array.findIndex(t => t == value);
+      array.splice(index,1);
+  }
+  return array;
+}
+
+export function createVector(point1, point2) {
+  return { x: point2.x - point1.x, y: point2.y - point1.y };
+}
+export function addVectors(point1, point2) {
+  return { x: point1.x + point2.x, y: point1.y + point2.y };
+}
+
+export function calculateDistance(point1, point2) {
+  const deltaX = point2.x - point1.x;
+  const deltaY = point2.y - point1.y;
+  const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+  return distance;
+}
+
+export function findCentroid(points) {
+  let x = 0;
+  let y = 0;
+  for (let p of points) {
+      x += p.x;
+      y += p.y;
+  }
+  const center = { x: 0, y: 0 };
+  center.x = x / points.length;
+  center.y = y / points.length;
+  return center;
+}
+
 /*
  * tokenMarker draws a rectangle at the target position for the token
  */

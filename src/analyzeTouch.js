@@ -1,9 +1,9 @@
 import { moduleName } from "../tui-vtt.js";
 import { TouchToken } from "./Tokens/TouchToken.js";
 import { PatternToken } from "./Tokens/PatternToken.js";
-import { debug, findTokenById, findToken} from "./Misc/misc.js";
+import { debug, findTokenById, findToken, removeFromArrayById, removeFromArrayByValue, findCentroid, createVector,addVectors} from "./Misc/misc.js";
 import { Touch , TouchType } from "./Misc/Touch.js";
-import { PatternTamplate, recognizeTriangle, calculateRotation } from "./Triangle/PatternTamplate.js";
+import { PatternTamplate, recognizePattern, calculateRotation } from "./Pattern/PatternTamplate.js";
 
 
 let Touches = [];
@@ -14,10 +14,7 @@ let pauseTimeoutCheck = false;
 let lastMiddlePoint = -1;
 let zoomHistory = [];
 let startZoom = -1;
-
-export function initializeTuiTokens(){
-    //for (let i=0; i<40; i++) TuiTokens[i] = new TuiToken();
-}
+let blockedTokens = [];
 
 export function waitForPatternTouchs(id, detectionThreshold = 0) {
     return new Promise((resolve, reject) => {
@@ -70,7 +67,7 @@ export async function analyzeTouch(type,data) {
         {   
             getTouch(id).setStartCoordinates;
             // move token returns false if no token was found  
-            if (await updateTouchToken(id,coordinates,scaledCoordinates,forceNew,data)){
+            if (await findTouchToken(id,coordinates,scaledCoordinates,forceNew,data)){
                 getTouch(id).touchType = TouchType.Token;
             }
             else
@@ -78,7 +75,7 @@ export async function analyzeTouch(type,data) {
                 // if a touch is not a token, it is a generic touch
                 // if only two generic touches are in the canvas it is a navigation
                 var navTouches = getTouchesByType(TouchType.Generic);
-                if(navTouches.length == 2)
+                if(navTouches.length == 2 && Touches.length == 2)
                 {
                     startZoom = canvas.stage.scale._y;
                     navTouches.forEach(nav => {
@@ -95,7 +92,10 @@ export async function analyzeTouch(type,data) {
                     });
                     getTouch(id).touchType = TouchType.Generic;
                     var genericTouches = getTouchesByType(TouchType.Generic);
-                    patternRecognition(genericTouches, forceNew, data);
+                    var patternTouches = getTouchesByType(TouchType.Pattern);
+                    if(patternTouches.length < 3)
+                        genericTouches = genericTouches.concat(patternTouches);                    
+                    patternRecognition(genericTouches, data);
                 }
         
             }
@@ -121,7 +121,7 @@ export async function analyzeTouch(type,data) {
             {
 
                 var patternTouches = getTouchesByType(TouchType.Pattern);
-                patternRecognition(patternTouches, forceNew, data);
+                patternUpdate(patternTouches, data);
                 
             }
         }
@@ -135,8 +135,10 @@ export async function analyzeTouch(type,data) {
             }
             // if a token touch ends it is dropped
             else if(getTouch(id).touchType === TouchType.Token)
-             {
-                GetTouchTokenById(id).dropToken();
+            {
+                var pToken = GetTouchTokenById(id);
+                blockedTokens = removeFromArrayByValue(blockedTokens,pToken.token);
+                await pToken.dropToken();
             }
             // if a navigation touch ends it is stopped and the zoom is reset
             else if(getTouch(id).touchType === TouchType.Navigation)
@@ -145,24 +147,17 @@ export async function analyzeTouch(type,data) {
             }
             else if(getTouch(id).touchType === TouchType.Pattern)
             {
-                var pToken = undefined;
-                PatternTokens.forEach(ptoken => {
-                   ptoken.patternTouchIds.forEach(pId => {
-                     if(pId == id){
-                        pToken = ptoken;
-                        return;
-                     }
-                   });
-                })
+                var pToken = GetPatternTokenByTouchId(id);
                 if(pToken != undefined)
                 {
-                    var pIds = pToken.patternTouchIds;
-                    pIds.forEach(pId => {
-                        if(getTouch(pId) != undefined)
-                            getTouch(pId).touchType = TouchType.Generic;
-                    })
-                    pToken.dropToken();
-                    removeFromArrayById(PatternTokens,pToken.id);
+                    pToken.touchIds = removeFromArrayByValue(pToken.touchIds,id);
+                    
+                    if(pToken.touchIds.length == 0)
+                    {
+                        blockedTokens = removeFromArrayByValue(blockedTokens,pToken.token);
+                        await pToken.dropToken();
+                        removeFromArrayById(PatternTokens,pToken.id);
+                    }
                 }
             }
 
@@ -172,13 +167,21 @@ export async function analyzeTouch(type,data) {
     }
 }
 
+function blockToken(token){
+    for (var i = 0; i < blockedTokens.length; i++) {
+        if(blockedTokens[i].document.id == token.document.id)
+            return;
+    }
+    blockedTokens.push(token);
+}
 
 function resetNavigation(){
     lastMiddlePoint = -1;
     zoomHistory = [];
 }
 
-async function patternRecognition(patternTouches, forceNew, data)
+
+async function patternRecognition(patternTouches, data)
 {
     if(patternTouches.length == 3)
     {
@@ -189,35 +192,99 @@ async function patternRecognition(patternTouches, forceNew, data)
         var patternId = undefined;
         var rotationAngle = 0;
         var token = undefined;
+        var initPatternTemplate = undefined;
+        var templateId = 0
+
         patternSetup.forEach(pattern => {
             if(pattern != undefined){
                 var pId = pattern.id;
                 var featureVectors = pattern.featureVectors;
 
-                var difference = recognizeTriangle(feature,featureVectors)[0];
-                var templateId = recognizeTriangle(feature,featureVectors)[1];
+                var difference = recognizePattern(feature,featureVectors)[0];
+                templateId = recognizePattern(feature,featureVectors)[1];
                 if (difference < pattern.detectionThreshold){
                     token = findTokenById(pId)
                     patternId = pId;
                     rotationAngle = calculateRotation(pattern,touchTemplate,templateId)
+                    initPatternTemplate = pattern;
                     return;
                 };
             }
         });
         if (patternId !== undefined){
-            var patternTouchIds = [];
+            var touchIds = [];
             patternTouches.forEach(genericTouch => {
                 genericTouch.touchType = TouchType.Pattern;
-                patternTouchIds.push(genericTouch.id);
+                touchIds.push(genericTouch.id);
             });
             var scaledCenter = scaleTouchInput(touchTemplate.center);
-            if(CheckIfTokenIsUsed(token,TouchTokens))
-                return;
-            GetOrCreatePatternToken(patternId,token, patternTouchIds);
-            await updatePatternToken(patternId,touchTemplate.center,scaledCenter,rotationAngle,patternTouchIds,forceNew,data);
-            //setTimeout(patternTimeout,game.settings.get(moduleName,'touchTimeout'),patternId);
+
+
+            TouchTokens.forEach(tToken => {
+                if(tToken.token == undefined)
+                    return;
+                if(tToken.token.document.id == token.document.id){
+                    tToken.dropToken();
+                    TouchTokens = removeFromArrayById(TouchTokens,tToken.id);
+                }
+            });
+
+            blockToken(token);
+            var pToken = GetOrCreatePatternToken(patternId,token, touchIds ,initPatternTemplate);
+            pToken.rotationAngle = rotationAngle;
             
+            await pToken.update(touchTemplate.center,scaledCenter,data);            
         }
+    }
+}
+
+async function patternUpdate(patternTouches, data)
+{
+
+    var pToken = undefined
+    //find a PatternToken that is using one of the patternTouches
+    patternTouches.forEach(pTouch => {
+        pToken = GetPatternTokenByTouchId(pTouch.id);
+    });
+    //if no PatternToken was found try to recognize a new pattern
+    if(pToken == undefined)
+    {
+        patternRecognition(patternTouches,data);
+        return;
+    }    
+    
+    if(patternTouches.length == 3)
+    {
+        var touchTemplate = new PatternTamplate([patternTouches[0].getCoordinates(),patternTouches[1].getCoordinates(),patternTouches[2].getCoordinates()],0); 
+
+        var feature = touchTemplate.featureVectors[0]; 
+        var featureVectors = pToken.initPatternTemplate.featureVectors;
+        var templateId = recognizePattern(feature,featureVectors)[1];
+
+        pToken.rotationAngle = calculateRotation(pToken.initPatternTemplate,touchTemplate,templateId)
+
+        var scaledCenter = scaleTouchInput(touchTemplate.center);
+
+        await pToken.update(touchTemplate.center,scaledCenter,data);
+        //setTimeout(patternTimeout,game.settings.get(moduleName,'touchTimeout'),patternId);
+            
+        
+    }
+    if(patternTouches.length == 2){
+        var points = [];
+        patternTouches.forEach(genericTouch => {
+            points.push(genericTouch.getCoordinates());
+        })
+        var center = findCentroid(points)
+
+        // let tokenPos =  {x: pToken.currentPosition.x+canvas.dimensions.size/2, y:pToken.currentPosition.y+canvas.dimensions.size/2};
+
+        // var offset = createVector(center, tokenPos); 
+        //center = addVectors(center,offset)
+        var scaledCenter = scaleTouchInput(center);
+
+
+        await pToken.update(center,scaledCenter,data);
     }
 }
 
@@ -232,13 +299,6 @@ function touchTimeout(id) {
     TouchTokens = removeFromArrayById(TouchTokens, id);
 }
 
-function removeFromArrayById(array, id){
-    if(array.some(t => t.id == id)) {
-        const index = array.findIndex(t => t.id == id);
-        array.splice(index,1);
-    }
-    return array;
-}
 
 
 function getTouchesByType(type){
@@ -260,47 +320,37 @@ function getTouch(id){
     return undefined;
 }
 
-
-async function tapDetect(data) {
-    debug('tapDetect','Tap Timeout passed, allowing token movement')
-    await updateTouchToken(data.id,data.coordinates,data.scaledCoordinates,data.forceNew,data.data)
-
-}
-async function updateTouchToken(id,coordinates,scaledCoordinates,forceNew,e) {
+async function findTouchToken(id,coordinates,scaledCoordinates,forceNew,e) {
     var tToken = GetOrCreateTouchTokenWithId(id);
     tToken.token = findToken(scaledCoordinates);
-    if(CheckIfTokenIsUsed(tToken,PatternTokens)){
-        return false;
+    if(tToken.token != undefined){
+        if(CheckIfTokenIsUsed(tToken)){
+            return false;
+        }
+        blockToken(tToken.token);
     }
     return await tToken.update(coordinates,scaledCoordinates,forceNew,e);
 }
-async function updatePatternToken(id,coordinates,scaledCoordinates, rotationAngle,patternTouchIds, forceNew,e) {
-    var token = GetPatternTokenById(id);
-    token.patternTouchIds = patternTouchIds;
-    token.rotationAngle = rotationAngle;
-    return await token.update(coordinates,scaledCoordinates,forceNew,e);
+
+async function updateTouchToken(id,coordinates,scaledCoordinates,forceNew,e) {
+    var tToken = GetOrCreateTouchTokenWithId(id);
+    tToken.token = findToken(scaledCoordinates);
+    return await tToken.update(coordinates,scaledCoordinates,forceNew,e);
 }
 
+function CheckIfTokenIsUsed(pToken){
 
-function CheckIfTokenIsUsed(pToken, tokenList){
-    if(pToken === undefined)
+    if(pToken.token == undefined)
         return false;
-    var pTokenActorId = undefined;
-    try{
-        pTokenActorId = pToken.document.actorId;
-    }
-    catch{}
-    for (var i = 0; i < tokenList.length; i++) {
-        var tokenActorId = undefined;
-        try{
-            tokenActorId = tokenList[i].token.document.actorId;
-        }
-        catch{}
-        if(pTokenActorId == tokenActorId && tokenActorId != undefined)
+    for(var i = 0; i < blockedTokens.length; i++)
+    {        
+        console.log(blockedTokens[i].document.id, pToken.token.document.id)
+        if(blockedTokens[i].document.id == pToken.token.document.id){
             return true;
+        }
     }
-    return false;
 }
+
 
 function GetTouchTokenById(id)
 {
@@ -332,11 +382,24 @@ function GetPatternTokenById(id)
      return patternToken;
 }
 
-function GetOrCreatePatternToken(id, token, patternTouchIds){
+function GetPatternTokenByTouchId(id)
+{
+    var patternToken = undefined;
+    PatternTokens.forEach(pToken => {
+        pToken.touchIds.forEach(tId => {
+            if(tId == id) 
+                patternToken = pToken;
+        });
+        
+    });
+     return patternToken;
+}
+
+function GetOrCreatePatternToken(id, token, touchIds, patternTemplate){
     var patternToken = GetPatternTokenById(id);
     if(patternToken == undefined)
     {  
-        patternToken =  new PatternToken(id, token,patternTouchIds)
+        patternToken =  new PatternToken(id, token,touchIds, patternTemplate)
         PatternTokens.push(patternToken);
     } 
      return patternToken;
@@ -350,12 +413,11 @@ async function navigation(navTouchIds) {
     }
 
     var touch0 = getTouch(navTouchIds[0]);
-    if (touch0 == false) return;
+    if (touch0 == undefined) return;
     var touch1 = getTouch(navTouchIds[1]);
-    if (touch1 == false) return;
+    if (touch1 == undefined) return;
 
     let zoomFactor = game.settings.get(moduleName,'zoomFactor');
-
     let start0x = getTouch(navTouchIds[0]).startCoord.x;
     let start0y = getTouch(navTouchIds[0]).startCoord.y;
     let start1x = getTouch(navTouchIds[1]).startCoord.x;

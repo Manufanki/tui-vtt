@@ -1,5 +1,5 @@
 import { tuiConfig, registerSettings } from "./src/Misc/settings.js";
-import { initializeTuiTokens, analyzeTouch } from "./src/analyzeTouch.js";
+import { analyzeTouch } from "./src/analyzeTouch.js";
 
 import {PatternSheetSettings} from "./src/Misc/PatternSheetSettings.js";
 
@@ -79,7 +79,6 @@ Hooks.on('ready',()=>{
     
     if (game.user.isGM) game.settings.set(moduleName,'menuOpen',false);
 
-    initializeTuiTokens();
 });
 
 Hooks.on('renderSidebarTab',(app,html)=>{

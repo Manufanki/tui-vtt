@@ -1,50 +1,30 @@
 import { moduleName } from "../../tui-vtt.js";
 import { tokenMarker, findToken, debug, compatibleCore } from "../Misc/misc.js";
-
+import { PatternTamplate } from "../Pattern/PatternTamplate.js";
 export class PatternToken{
-    constructor(id, token, patternTouchIds) {
+    constructor(id, token, touchIds, patternTemplate) {
         this.id = id;
         this.controlledToken = token;
+        this.previousPosition;
         this.currentPosition;
         this.token = token;
         this.rawCoordinated;
         this.rotationAngle = 0;
-        this.patternTouchIds = patternTouchIds;
+        this.touchIds = touchIds;
+        this.initPatternTemplate = patternTemplate;
+        this.featureId = 0;
 
         this.marker = new tokenMarker();
         canvas.stage.addChild(this.marker);
         this.marker.init();
     }
 
-    async update(data, scaledCoords, forceNew =false,e){
+    async update(data, scaledCoords, e){
         
         if (data.x == undefined || data.y == undefined) return false;
         let coords = {x:data.x,y:data.y}
         this.rawCoordinates = coords;
     
-        if (this.token == undefined || forceNew) 
-        {
-            //Find the nearest token to the scaled coordinates
-            if (this.token == undefined) 
-            {
-                this.token = findToken( scaledCoords );
-
-            }
-            if (this.token == undefined) {
-                debug('updateMovement','No token found')
-                return false;
-            }
-
-            if (this.token.can(game.user,"control") == false && game.settings.get(moduleName,'EnNonOwned') == false) {
-                this.token = undefined;
-                debug('updateMovement',`User can't control token ${this.token.name}`)
-                return false;
-            }
-
-            this.currentPosition = {x:this.token.x+canvas.dimensions.size/2, y:this.token.y+canvas.dimensions.size/2}
-            this.controlledToken = this.token;
-            this.originPosition = {x:this.token.x, y:this.token.y};
-        }
         if (this.token.can(game.user,"control"))
             this.token.control({releaseOthers:false});
         
@@ -290,19 +270,18 @@ export class PatternToken{
         return coords;
     }
 
-     /**
+       /**
      * Calculate the difference between the old coordinates of the token and the last measured coordinates, and move the token there
      */
-    async dropToken(release = game.settings.get(moduleName,'deselect')){
-        
+       async dropToken(){
         //If no token is controlled, return
         if (this.token == undefined) return false;
         
-        this.moveToken(this.currentPosition)
+        //this.moveToken(this.currentPosition)
         let newCoords = {
             x: (this.currentPosition.x-canvas.dimensions.size/2),
             y: (this.currentPosition.y-canvas.dimensions.size/2),
-            rotation: compatibleCore('10.0') ? this.token.document.rotation : this.token.document.rotation
+            rotation: compatibleCore('10.0') ? this.token.document.rotation : this.token.data.rotation
         }
 
         
@@ -320,27 +299,27 @@ export class PatternToken{
                 }
             }
         }
-                
-        this.moveToken(this.currentPosition);
-
-        //Get the coordinates of the center of the grid closest to the coords
-        if (this.token.can(game.user,"control")) {
-            await this.token.document.update(newCoords);
-            
-            if(this.token.animationName != undefined)
-                CanvasAnimation.terminateAnimation(this.token.animationName);
-            debug('dropToken',`Token ${this.token.name}, Dropping at (${newCoords.x}, ${newCoords.y})`)
-        }
-        else {
-            await this.token.document.update(newCoords);
-            this.requestMovement(this.token,newCoords);
-            debug('dropToken',`Token ${this.token.name}, Non-owned token, requesting GM client to be dropped at (${newCoords.x}, ${newCoords.y})`)
-        }
         
+        this.previousPosition = this.currentPosition;
+        
+        await this.moveToken(this.currentPosition);
+
         //Release token, if setting is enabled
-        if (release) this.token.release();
+        this.token.release();
+        this.token = undefined;
         this.marker.hide();
         return true;
+    }
+
+    requestMovement(token,coords){
+        let payload = {
+            "msgType": "moveToken",
+            "senderId": game.user.id, 
+            "receiverId": game.data.users.find(users => users.role == 4)._id, 
+            "tokenId": token.id,
+            "newCoords": coords
+        };
+        game.socket.emit(`module.${moduleName}`, payload);
     }
 
     requestMovement(token,coords){

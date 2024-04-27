@@ -12,7 +12,6 @@ export class TouchToken{
         this.rotationPosition;
         this.rotationThreshold;
         this.rotationHistory = [];
-        this.rotationMethod = true;
         this.rotationAngle = 0;
         this.patternTouchIds = [];
 
@@ -32,7 +31,7 @@ export class TouchToken{
             //Find the nearest token to the scaled coordinates
             if (this.token == undefined) 
             {
-                this.token = findToken( scaledCoords );
+                //this.token = findToken( scaledCoords );
 
             }
             if (this.token == undefined) {
@@ -91,11 +90,9 @@ export class TouchToken{
         }
 
         if (collision == false) {
-            if(this.rotationMethod)
-                await this.rotateTokenByDragging(coords,currentPos);
-            else{
-                await this.rotateTokenByPattern();
-            }
+            
+            await this.rotateToken(coords,currentPos);
+          
                 //Check surrounding Grid
             if (this.token.can(game.user,"control")) 
             {
@@ -187,7 +184,7 @@ export class TouchToken{
         }
     }
 
-    async rotateTokenByDragging(coords, currentPos){
+    async rotateToken(coords, currentPos){
         // Rotate the token
         if(!this.token.document.lockRotation){
             if (this.rotationPosition == undefined) this.rotationPosition = coords;
@@ -222,14 +219,6 @@ export class TouchToken{
         this.previousPosition = currentPos; // Update the previous position
         this.rotationPosition = coords; // Update the rotation position
     }
-
-    async rotateTokenByPattern(){
-        // Rotate the token
-        if(!this.token.document.lockRotation){
-            this.token.document.rotation = this.rotationAngle;
-        }
-    }
-
       /*
      * Check for wall collisions
      */
@@ -338,16 +327,15 @@ export class TouchToken{
      /**
      * Calculate the difference between the old coordinates of the token and the last measured coordinates, and move the token there
      */
-    async dropToken(release = game.settings.get(moduleName,'deselect')){
-        
+    async dropToken(){
         //If no token is controlled, return
         if (this.token == undefined) return false;
         
-        this.moveToken(this.currentPosition)
+        //this.moveToken(this.currentPosition)
         let newCoords = {
             x: (this.currentPosition.x-canvas.dimensions.size/2),
             y: (this.currentPosition.y-canvas.dimensions.size/2),
-            rotation: compatibleCore('10.0') ? this.token.document.rotation : this.token.document.rotation
+            rotation: compatibleCore('10.0') ? this.token.document.rotation : this.token.data.rotation
         }
 
         
@@ -368,24 +356,10 @@ export class TouchToken{
         
         this.previousPosition = this.currentPosition;
         
-        this.moveToken(this.currentPosition);
+        await this.moveToken(this.currentPosition);
 
-        //Get the coordinates of the center of the grid closest to the coords
-        if (this.token.can(game.user,"control")) {
-            await this.token.document.update(newCoords);
-            
-            if(this.token.animationName != undefined)
-                CanvasAnimation.terminateAnimation(this.token.animationName);
-            debug('dropToken',`Token ${this.token.name}, Dropping at (${newCoords.x}, ${newCoords.y})`)
-        }
-        else {
-            await this.token.document.update(newCoords);
-            this.requestMovement(this.token,newCoords);
-            debug('dropToken',`Token ${this.token.name}, Non-owned token, requesting GM client to be dropped at (${newCoords.x}, ${newCoords.y})`)
-        }
-        
         //Release token, if setting is enabled
-        if (release) this.token.release();
+        this.token.release();
         this.token = undefined;
         this.marker.hide();
         return true;
