@@ -5,13 +5,31 @@ export class PatternTamplate{
         if (touchPoints.length !== 3) {
             throw new Error("Triangle must be initialized with exactly 3 touch points.");
         }
-        this.sortedVertices = sortVertices(touchPoints);
-        this.center = findCentroid(this.sortedVertices);
+        this.center = findCentroid(touchPoints);
+
+        this.angles = touchPoints.map((point, index) => {
+            return {
+                index: index,
+                angle: Math.atan2(point[1] - this.center[1], point[0] - this.center[0])
+            };
+        });
+
+        // Sort the points by angle in counterclockwise order
+        this.angles.sort((a, b) => a.angle - b.angle);
+
+        // Create the sortedPoints array and the index mapping
+        this.sortedVertices = this.angles.map(a => touchPoints[a.index]);
+        this.indexMapping  = this.angles.map(a => a.index);        
         
         this.sideLengths = [
             calculateDistance(this.sortedVertices[0], this.sortedVertices[1]),
             calculateDistance(this.sortedVertices[1], this.sortedVertices[2]),
             calculateDistance(this.sortedVertices[2], this.sortedVertices[0])
+        ];
+        this.sideLengthsRounded = [
+            Math.round(this.sideLengths[0]),
+            Math.round(this.sideLengths[1]),
+            Math.round(this.sideLengths[2]) 
         ];
             
         this.featureVectors = [
@@ -43,19 +61,9 @@ export class PatternTamplate{
     debug(){
         console.log("TUI_Feature Vector:", this.featureVectors);
     }
+
 }
 
-
-function sortVertices(points) {
-    // Get centroid
-    const center = findCentroid(points);
-    points.sort((a, b) => {
-        const a1 = (Math.atan2(a.x - center.x, a.y - center.y) * 180 / Math.PI + 360) % 360;
-        const a2 = (Math.atan2(b.x - center.x, b.y - center.y) * 180 / Math.PI + 360) % 360;
-        return a1 - a2;
-    });
-    return points;
-}
 
 export function recognizePattern(featureVector, featureVectors) {
     var d0 = euclideanNorm(featureVector.map((value, index) => value - featureVectors[0][index]));

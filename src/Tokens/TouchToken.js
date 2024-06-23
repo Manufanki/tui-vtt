@@ -1,5 +1,5 @@
 import { moduleName } from "../../tui-vtt.js";
-import { tokenMarker, findToken, debug, compatibleCore } from "../Misc/misc.js";
+import { tokenMarker, findToken, debug, compatibleCore, findTokenById } from "../Misc/misc.js";
 
 export class TouchToken{
     constructor(id, token = undefined) {
@@ -14,6 +14,7 @@ export class TouchToken{
         this.rotationHistory = [];
         this.rotationAngle = 0;
         this.patternTouchIds = [];
+        this.currentField = {x:0,y:0};
 
         this.marker = new tokenMarker();
         canvas.stage.addChild(this.marker);
@@ -31,7 +32,7 @@ export class TouchToken{
             //Find the nearest token to the scaled coordinates
             if (this.token == undefined) 
             {
-                //this.token = findToken( scaledCoords );
+                this.token = findToken( scaledCoords );
 
             }
             if (this.token == undefined) {
@@ -44,7 +45,6 @@ export class TouchToken{
                 debug('updateMovement',`User can't control token ${this.token.name}`)
                 return false;
             }
-
             this.rotationThreshold = game.settings.get(moduleName,'rotationThreshold');
             this.currentPosition = {x:this.token.x+canvas.dimensions.size/2, y:this.token.y+canvas.dimensions.size/2}
             this.previousPosition = this.currentPosition;
@@ -88,88 +88,103 @@ export class TouchToken{
         if (this.token.can(game.user,"control") == false) {
             collision = false;
         }
-
+        //StepByStep
+        
         if (collision == false) {
-            
-            await this.rotateToken(coords,currentPos);
-          
-                //Check surrounding Grid
-            if (this.token.can(game.user,"control")) 
-            {
-                let surroundingGridCollisions = this.checkSurroundingGridCollision(coords,currentPos);
-                let collisions = [surroundingGridCollisions[0],surroundingGridCollisions[1],surroundingGridCollisions[2],surroundingGridCollisions[3]];
-                
-                if (surroundingGridCollisions[4]) {collisions[0]=true; collisions[2]=true}
-                if (surroundingGridCollisions[5]) {collisions[0]=true; collisions[3]=true}
-                if (surroundingGridCollisions[6]) {collisions[1]=true; collisions[2]=true}
-                if (surroundingGridCollisions[7]) {collisions[1]=true; collisions[3]=true}
-
-                //if (!surroundingGridCollisions[0] && !surroundingGridCollisions[1]) this.token.data.x = coords.x;
-                //if (!surroundingGridCollisions[2] && !surroundingGridCollisions[3]) this.token.data.y = coords.y;
-                let moveX = false;
-                let moveY = false;
-                if (!collisions[0] && !collisions[1]) moveX = true;
-                if (!collisions[2] && !collisions[3]) moveY = true;
-                
-                if (moveX && moveY) {
-
-                    this.token.document.x = coords.x;
-                    this.token.document.y = coords.y;
-
-                    
-                    //this.currentPosition = currentPos;
-                }
-                //movement in X is allowed, Y is not
-                else if (!surroundingGridCollisions[0] && !surroundingGridCollisions[1]) {
-                    if (compatibleCore('10.0')) {
-                        this.token.document.x = coords.x;
-                        this.token.document.y = currentPos.y - Math.floor(canvas.dimensions.size/2);
-                    }
-                    else {
-                        this.token.data.x = coords.x;
-                        this.token.data.y = currentPos.y - Math.floor(canvas.dimensions.size/2);
-                    }
-                }
-                //movement in Y is allowed, X is not
-                else if (!surroundingGridCollisions[2] && !surroundingGridCollisions[3]) {
-                    if (compatibleCore('10.0')) {
-                        this.token.document.x = currentPos.x - Math.floor(canvas.dimensions.size/2);
-                        this.token.document.y = coords.y;
-                    }
-                    else {
-                        this.token.data.x = currentPos.x - Math.floor(canvas.dimensions.size/2);
-                        this.token.data.y = coords.y;
-                    } 
-                }
-                this.currentPosition = currentPos;
-            }
-            else {
-                if (compatibleCore('10.0')) {
-                    this.token.document.x = coords.x;
-                    this.token.document.y = coords.y;
-                }
-                else {
-                    this.token.data.x = coords.x;
-                    this.token.data.y = coords.y;
-                }
-                this.currentPosition = currentPos;
-            }
-            this.token.refresh();
-            this.token.updateSource({noUpdateFog: false});
-            debug('moveToken',`Token: ${this.token.name}, Move to: (${coords.x}, ${coords.y})`)
-
-             //Get the coordinates of the center of the grid closest to the coords
-             let newCoords = {
+            this.currentPosition = currentPos;
+            let newCoords = {
                 x: (this.currentPosition.x-canvas.dimensions.size/2),
                 y: (this.currentPosition.y-canvas.dimensions.size/2),
                 rotation: compatibleCore('10.0') ? this.token.document.rotation : this.token.data.rotation
-            }
 
+            }
+            if(this.currentField.x != newCoords.x || this.currentField.y != newCoords.y){
+                this.currentField = newCoords;
+                this.previousPosition = this.currentPosition;    
+                this.updateGMMovement(this.token,newCoords);
+                // debug('moveToken',`Token: ${this.token.document.name}, Move to: (${newCoords.x}, ${newCoords.y})`);
+                // if(this.token.document == undefined)
+                //     console.log(`Token: ${this.token.document.name}, Move to: (${newCoords.x}, ${newCoords.y})`);
+            }
+            else
+            {
+                this.rotateToken(coords,currentPos);
+            
+                    //Check surrounding Grid
+                if (this.token.can(game.user,"control")) 
+                {
+                    let surroundingGridCollisions = this.checkSurroundingGridCollision(coords,currentPos);
+                    let collisions = [surroundingGridCollisions[0],surroundingGridCollisions[1],surroundingGridCollisions[2],surroundingGridCollisions[3]];
+                    
+                    if (surroundingGridCollisions[4]) {collisions[0]=true; collisions[2]=true}
+                    if (surroundingGridCollisions[5]) {collisions[0]=true; collisions[3]=true}
+                    if (surroundingGridCollisions[6]) {collisions[1]=true; collisions[2]=true}
+                    if (surroundingGridCollisions[7]) {collisions[1]=true; collisions[3]=true}
+
+                    //if (!surroundingGridCollisions[0] && !surroundingGridCollisions[1]) this.token.data.x = coords.x;
+                    //if (!surroundingGridCollisions[2] && !surroundingGridCollisions[3]) this.token.data.y = coords.y;
+                    let moveX = false;
+                    let moveY = false;
+                    if (!collisions[0] && !collisions[1]) moveX = true;
+                    if (!collisions[2] && !collisions[3]) moveY = true;
+                    
+                    if (moveX && moveY) {
+
+                        this.token.document.x = coords.x;
+                        this.token.document.y = coords.y;
+                        this.currentPosition = currentPos;
+                    }
+                    //movement in X is allowed, Y is not
+                    else if (!surroundingGridCollisions[0] && !surroundingGridCollisions[1]) {
+                        if (compatibleCore('10.0')) {
+                            this.token.document.x = coords.x;
+                            this.token.document.y = currentPos.y - Math.floor(canvas.dimensions.size/2);
+                        }
+                        else {
+                            this.token.data.x = coords.x;
+                            this.token.data.y = currentPos.y - Math.floor(canvas.dimensions.size/2);
+                        }
+                    }
+                    //movement in Y is allowed, X is not
+                    else if (!surroundingGridCollisions[2] && !surroundingGridCollisions[3]) {
+                        if (compatibleCore('10.0')) {
+                            this.token.document.x = currentPos.x - Math.floor(canvas.dimensions.size/2);
+                            this.token.document.y = coords.y;
+                        }
+                        else {
+                            this.token.data.x = currentPos.x - Math.floor(canvas.dimensions.size/2);
+                            this.token.data.y = coords.y;
+                        } 
+                    }
+                    this.currentPosition = currentPos;
+                }
+                else {
+                    if (compatibleCore('10.0')) {
+                        this.token.document.x = coords.x;
+                        this.token.document.y = coords.y;
+                    }
+                    else {
+                        this.token.data.x = coords.x;
+                        this.token.data.y = coords.y;
+                    }
+                    this.currentPosition = currentPos;
+                }
+            }
         }
-        else
-            debug('moveToken',`Token: ${this.token.name}, Can't move due to a wall collision`)
- 
-        
+        if(this.token != undefined)
+        {
+            this.token.refresh();
+            this.token.updateSource({noUpdateFog: false});
+            debug('moveToken',`Token: ${this.token.name}, Move to: (${coords.x}, ${coords.y})`)
+        }
+
+            //Get the coordinates of the center of the grid closest to the coords
+        // newCoords = {
+        //     x: (this.currentPosition.x-canvas.dimensions.size/2),
+        //     y: (this.currentPosition.y-canvas.dimensions.size/2),
+        //     rotation: compatibleCore('10.0') ? this.token.document.rotation : this.token.data.rotation
+        // }
+
         //Draw the movement marker
         if (game.settings.get(moduleName,'movementMarker')) {
             const color = collision ? "0xFF0000" : "0x00FF00"
@@ -195,7 +210,7 @@ export class TouchToken{
                 var differenceY = this.rotationPosition.y - coords.y;
                 var angleRadians = Math.atan2(differenceY , differenceX);
                 
-                if(this.rotationHistory.length > 5) this.rotationHistory.shift();
+                if(this.rotationHistory.length > 20) this.rotationHistory.shift();
                 this.rotationHistory.push(angleRadians);
 
                 let sumSines = 0;
@@ -212,8 +227,7 @@ export class TouchToken{
                 var averageAngleRadians = Math.atan2(averageSine, averageCosine);
                 var averageAngleDegrees = (averageAngleRadians * 180) / Math.PI;
             
-                this.token.document.rotation = averageAngleDegrees +90;
-                
+                this.token.document.rotation = averageAngleDegrees +90;                
             }
         }
         this.previousPosition = currentPos; // Update the previous position
@@ -328,6 +342,7 @@ export class TouchToken{
      * Calculate the difference between the old coordinates of the token and the last measured coordinates, and move the token there
      */
     async dropToken(){
+        this.isMoving = false;
         //If no token is controlled, return
         if (this.token == undefined) return false;
         
@@ -357,10 +372,22 @@ export class TouchToken{
         this.previousPosition = this.currentPosition;
         
         await this.moveToken(this.currentPosition);
-
+        
+        if (this.token.can(game.user,"control")) {
+            await this.token.document.update(newCoords);
+            // if (compatibleCore('10.0')) CanvasAnimation.terminateAnimation(this.token.animationName);
+            // debug('dropToken',`Token ${this.token.name}, Dropping at (${newCoords.x}, ${newCoords.y})`)
+        }
+        else {
+            await this.token.document.update(newCoords);
+            this.requestMovement(this.token,newCoords);
+            debug('dropToken',`Token ${this.token.name}, Non-owned token, requesting GM client to be dropped at (${newCoords.x}, ${newCoords.y})`)
+        }
         //Release token, if setting is enabled
+
         this.token.release();
         this.token = undefined;
+        
         this.marker.hide();
         return true;
     }
@@ -371,7 +398,19 @@ export class TouchToken{
             "senderId": game.user.id, 
             "receiverId": game.data.users.find(users => users.role == 4)._id, 
             "tokenId": token.id,
-            "newCoords": coords
+            "newCoords": coords,
+            "rotation" : token.document.rotation
+        };
+        game.socket.emit(`module.${moduleName}`, payload);
+    }
+    updateGMMovement(token,coords){
+        let payload = {
+            "msgType": "updateTokenPosition",
+            "senderId": game.user.id, 
+            "receiverId": game.data.users.find(users => users.role == 4)._id, 
+            "tokenId": token.id,
+            "newCoords": coords,
+            "rotation" : token.document.rotation
         };
         game.socket.emit(`module.${moduleName}`, payload);
     }
