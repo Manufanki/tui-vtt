@@ -1,7 +1,7 @@
 import { moduleName } from "../tui-vtt.js";
 import { TouchToken } from "./Tokens/TouchToken.js";
 import { PatternToken } from "./Tokens/PatternToken.js";
-import { debug, findTokenById, findToken, removeFromArrayById, removeFromArrayByValue, findCentroid, createVector,addVectors} from "./Misc/misc.js";
+import { debug, findTokenById, findToken, removeFromArrayById, removeFromArrayByValue, averageVectorList, findCentroid, createVector,addVectors, addVectorList} from "./Misc/misc.js";
 import { Touch , TouchType } from "./Misc/Touch.js";
 import { PatternTamplate, recognizePattern, calculateRotation } from "./Pattern/PatternTamplate.js";
 
@@ -19,20 +19,26 @@ let blockedTokens = [];
 
 export function waitForPatternTouchs(id, detectionThreshold = 0) {
     return new Promise((resolve, reject) => {
-
+        let pointsA = [];
+        let pointsB = [];
+        let pointsC = [];
         const interval = setInterval(() => {
             if (Touches.length >= 3) {
+                console.log('point count', " : ",pointsA.length);
+
+                pointsA.push(Touches[0].getCoordinates());
+                pointsB.push(Touches[1].getCoordinates());
+                pointsC.push(Touches[2].getCoordinates());
+            }
+            if(pointsA.length > 200)
+                {
                 clearInterval(interval);
-                var patternTemplate = new PatternTamplate([Touches[0].getCoordinates(),Touches[1].getCoordinates(),Touches[2].getCoordinates()], id);
+                console.log('average points ', " : ",averageVectorList(pointsA));
+                var patternTemplate= new PatternTamplate([averageVectorList(pointsA),averageVectorList(pointsB),averageVectorList(pointsC)], id);
                 patternTemplate.detectionThreshold = detectionThreshold;
                 resolve(patternTemplate, );
-            } 
-            else {
-              // Do nothing if the user cancels the input
             }
-          }, 10);
-
-        
+        }, 10);
     });
 }
 
@@ -216,7 +222,7 @@ async function patternRecognition(id, data)
                             
                             var difference = recognizePattern(feature,featureVectors)[0];
                             templateId = recognizePattern(feature,featureVectors)[1];
-                            console.log("TouchDifference to pattern id "+pId +" is: " +difference);
+                            // console.log("TouchDifference to pattern id "+pId +" is: " +difference);
                             if (difference < pattern.detectionThreshold && difference < patternDifference){
                                 token = findTokenById(pId)
                                 patternId = pId;

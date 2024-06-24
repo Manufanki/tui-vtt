@@ -107,6 +107,10 @@ export function removeFromArrayByValue(array, value)
   return array;
 }
 
+export function isVector(obj) {
+  return obj && typeof obj.x === 'number' && typeof obj.y === 'number';
+}
+
 export function createVector(point1, point2) {
   return { x: point2.x - point1.x, y: point2.y - point1.y };
 }
@@ -114,6 +118,40 @@ export function addVectors(point1, point2) {
   return { x: point1.x + point2.x, y: point1.y + point2.y };
 }
 
+export function subtractVectors(point1, point2) {
+  return { x: point1.x - point2.x, y: point1.y - point2.y };
+}
+
+export function addVectorList(vectorList){
+  let sum = {x: 0, y: 0};
+  for (let vector of vectorList){
+    sum = addVectors(sum, vector);
+  }
+  return sum;
+}
+
+export function scaleVector(vector, factor) {
+  return { x: vector.x * factor, y: vector.y * factor };
+}
+export function scaleVectorList(vectorList, factor) {
+  let sum = {x: 0, y: 0};
+  for (let vector of vectorList){
+    sum = addVectors(sum, scaleVector(vector, factor));
+  }
+  return sum;
+}
+
+export function divideVectors(point1, factor) {
+  return { x: point1.x / factor, y: point1.y / factor };
+}
+
+export function averageVectorList(vectorList) {
+  let sum = {x: 0, y: 0};
+  for (let vector of vectorList){
+    sum = addVectors(sum, vector);
+  }
+  return divideVectors(sum, vectorList.length);
+}
 export function calculateDistance(point1, point2) {
   const deltaX = point2.x - point1.x;
   const deltaY = point2.y - point1.y;
