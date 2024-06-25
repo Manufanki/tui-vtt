@@ -333,7 +333,7 @@ export class tuiConfig extends FormApplication{
             html += `
             <div style="display:flex; width:100%">
                 <input type="number" name="tuiPatternID" style="width:10%; margin-right:0.5%" id="tuiPatternID-${i}" value="${pattern.id}">
-                <input type="text" name="tuiRotation" style="width:40%; margin-right:0.5%" id="tuiRotation-${i}" value="${pattern.centerAngles}">
+                <input type="text" name="tuiRotation" style="width:40%; margin-right:0.5%" id="tuiRotation-${i}" value="${pattern.sideLengthsRounded}">
                 <input type="number" name="tuidetectionThreshold" style="width:40%; margin-right:5%" id="tuidetectionThreshold-${i}" value="${pattern.detectionThreshold}">
                 <button type="button" name="tuiSetPatternBtn" style="width:5%; margin-right:2.5%" id="tuiSetPatternBtn-${i}"><i class="fas fa-table"></i></button>
                 <button type="button" name="tuiDeletePatternBtn" style="width:5%" id="tuiDeletePatternBtn-${i}"><i class="fas fa-trash"></i></button>

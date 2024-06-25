@@ -11,9 +11,11 @@ export class Touch{
         this.touch = touch;
         this.startCoord = {x: touch.screenX, y: touch.screenY};
         this.touchType = type;
+        this.timeout = false;
     }
     setStartCoordinates(){
         this.startCoord = {x: this.touch.screenX, y: this.touch.screenY};
+        setTimeout(()=>{this.timeout = true;}, 1000);
     }
 
     getCoordinates(){

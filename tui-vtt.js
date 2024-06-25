@@ -6,6 +6,8 @@ import {PatternSheetSettings} from "./src/Misc/PatternSheetSettings.js";
 //Global variables
 export const moduleName = "tui-vtt";
 export let configDialog;
+export const SOCKET_NAMESPACE = "module.gm-token-updater";
+
 
 let hideElements = false;
 let enableModule = false;
@@ -27,7 +29,6 @@ Handlebars.registerHelper('ifNCond', function(v1, v2, options) {
 
 Hooks.on('ready',()=>{
     console.log("TUI_READY"); 
-
     enableModule = game.user.name == game.settings.get(moduleName,'TargetName');
     hideElements = game.settings.get(moduleName,'HideElements') && game.user.isGM == false;
     if ((enableModule || game.user.isGM)){
@@ -49,13 +50,25 @@ Hooks.on('ready',()=>{
 
     if (!enableModule && !game.user.isGM) return;
 
+
     game.socket.on(`module.${moduleName}`, (payload) =>{
         //console.log(payload);
         
         if (game.user.id == payload.receiverId) {
             if (payload.msgType == "moveToken"){
                 let token = canvas.tokens.get(payload.tokenId);
-                if (token != undefined) token.document.update({x: payload.newCoords.x, y: payload.newCoords.y});
+                if (token != undefined) token.document.update({x: payload.newCoords.x, y: payload.newCoords.y,rotation : payload.rotation});
+            }
+            if (payload.msgType == "updateTokenPosition"){
+                let token = canvas.tokens.get(payload.tokenId);
+
+                if (token != undefined){
+                    token.document.x = payload.newCoords.x;
+                    token.document.y = payload.newCoords.y;
+                    token.refresh();
+                    token.document.rotation = payload.rotation;
+                 }
+                    
             }
         }
         else if (payload.msgType == 'refresh') {
@@ -158,4 +171,3 @@ Hooks.on('renderPlayerList', (app, html) => {
 });
 
 Hooks.on("renderTokenConfig", (app, html, data) => PatternSheetSettings.SheetSetting(app, html, data));
-
