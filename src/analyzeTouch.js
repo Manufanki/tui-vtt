@@ -1,7 +1,7 @@
 import { moduleName } from "../tui-vtt.js";
 import { TouchToken } from "./Tokens/TouchToken.js";
 import { PatternToken } from "./Tokens/PatternToken.js";
-import { debug, findTokenById, findToken, removeFromArrayById, removeFromArrayByValue, averageVectorList, findCentroid, createVector,addVectors, addVectorList} from "./Misc/misc.js";
+import { debug, findTokenById, findToken, removeFromArrayById, removeFromArrayByValue, averageVectorList, findCentroid, createVector,addVectors, addVectorList, subtractVectors} from "./Misc/misc.js";
 import { Touch , TouchType } from "./Misc/Touch.js";
 import { PatternTamplate, recognizePattern, calculateRotation } from "./Pattern/PatternTamplate.js";
 
@@ -25,10 +25,14 @@ export function waitForPatternTouchs(id, detectionThreshold = 0) {
         const interval = setInterval(() => {
             if (Touches.length >= 3) {
                 console.log('point count', " : ",pointsA.length);
+                var center = averageVectorList([Touches[0].getCoordinates(),Touches[1].getCoordinates(),Touches[2].getCoordinates()]);
+                var normalizedA = subtractVectors(Touches[0].getCoordinates(),center);
+                var normalizedB = subtractVectors(Touches[1].getCoordinates(),center);
+                var normalizedC = subtractVectors(Touches[2].getCoordinates(),center);
 
-                pointsA.push(Touches[0].getCoordinates());
-                pointsB.push(Touches[1].getCoordinates());
-                pointsC.push(Touches[2].getCoordinates());
+                pointsA.push(normalizedA);
+                pointsB.push(normalizedB);
+                pointsC.push(normalizedC);
             }
             if(pointsA.length > 200)
                 {
