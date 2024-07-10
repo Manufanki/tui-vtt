@@ -1,5 +1,5 @@
 import { tuiConfig, registerSettings } from "./src/Misc/settings.js";
-import { analyzeTouch } from "./src/analyzeTouch.js";
+import { analyzeTouch, init } from "./src/analyzeTouch.js";
 
 import {PatternSheetSettings} from "./src/Misc/PatternSheetSettings.js";
 
@@ -31,6 +31,9 @@ Hooks.on('ready',()=>{
     console.log("TUI_READY"); 
     enableModule = game.user.name == game.settings.get(moduleName,'TargetName');
     hideElements = game.settings.get(moduleName,'HideElements') && game.user.isGM == false;
+
+    init();
+
     if ((enableModule || game.user.isGM)){
         
         document.addEventListener('touchstart',function(e) {analyzeTouch('start',e);});

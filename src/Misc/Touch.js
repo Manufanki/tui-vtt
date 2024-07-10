@@ -3,6 +3,7 @@ export const TouchType = {
     Token: 1,
     Pattern: 2,
     Navigation: 3,
+    Measure: 4
 }
 
 export class Touch{
@@ -12,6 +13,7 @@ export class Touch{
         this.startCoord = {x: touch.screenX, y: touch.screenY};
         this.touchType = type;
         this.timeout = false;
+        this.patternStack = [];
     }
     setStartCoordinates(){
         this.startCoord = {x: this.touch.screenX, y: this.touch.screenY};
@@ -20,5 +22,11 @@ export class Touch{
 
     getCoordinates(){
         return {x: this.touch.screenX, y: this.touch.screenY};
+    }
+
+    addToPatternStack()
+    {
+        if(this.patternStack.length > 20) this.patternStack.shift();
+            this.patternStack.push(this.getCoordinates());  
     }
 }

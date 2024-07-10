@@ -47,6 +47,9 @@ export function compatibleCore(compatibleVersion){
     return compareVersions(compatibleVersion, coreVersion);
   }
 
+
+
+
   export function findToken(coords, spacing, currentToken){
 
     if (spacing == undefined) {
@@ -89,7 +92,16 @@ export function findTokenById(id){
   }
   return undefined;
 }
+export function getPatternById(id){
+  var patternSetup = game.settings.get(moduleName,'patternSetup');
+  var result = undefined;
+  patternSetup.forEach(pattern => {
+    if(pattern.id == id)
+      result = pattern;
+  });
+  return result;
 
+}
 export function removeFromArrayById(array, id){
   if(array.some(t => t.id == id)) {
       const index = array.findIndex(t => t.id == id);
@@ -116,10 +128,6 @@ export function createVector(point1, point2) {
 }
 export function addVectors(point1, point2) {
   return { x: point1.x + point2.x, y: point1.y + point2.y };
-}
-
-export function subtractVectors(point1, point2) {
-  return { x: point1.x - point2.x, y: point1.y - point2.y };
 }
 
 export function addVectorList(vectorList){
@@ -152,6 +160,46 @@ export function averageVectorList(vectorList) {
   }
   return divideVectors(sum, vectorList.length);
 }
+
+
+export function normalizePattern(vectorList) {
+  var center = averageVectorList([vectorList[0],vectorList[1],vectorList[2]]);
+  var normalizedA = createVector(center,vectorList[0]);
+  var normalizedB = createVector(center,vectorList[1]);
+  var normalizedC = createVector(center,vectorList[2]);
+  return [normalizedA,normalizedB,normalizedC];
+}
+
+export function normalizedPatternList(vectorListsA, vectorListsB, vectorListsC, stackSize) 
+{
+  if(vectorListsA.length < stackSize || vectorListsB.length < stackSize || vectorListsC.length < stackSize){
+    return undefined;
+  }
+  // var minLength = 1000000;
+  
+  // if (vectorListsA.length < minLength){
+  //   minLength = vectorListsA.length;
+  // }
+  // if (vectorListsB.length < minLength){
+  //   minLength = vectorListsB.length;
+  // }
+  // if (vectorListsC.length < minLength){
+  //   minLength = vectorListsC.length;
+  // }
+  
+  let pointsA = [];
+  let pointsB = [];
+  let pointsC = [];
+  for (let i = 0; i < stackSize; i++) {
+    var normalized = normalizePattern([vectorListsA[i],vectorListsB[i],vectorListsC[i]]);
+    pointsA.push(normalized[0]);
+    pointsB.push(normalized[1]);
+    pointsC.push(normalized[2]);
+ }
+  return [averageVectorList(pointsA),averageVectorList(pointsB),averageVectorList(pointsC)];
+
+}
+
 export function calculateDistance(point1, point2) {
   const deltaX = point2.x - point1.x;
   const deltaY = point2.y - point1.y;
@@ -235,4 +283,29 @@ export class tokenMarker extends CanvasLayer {
     remove() {
       this.container.removeChildren();
     }
+  }
+  export function startRulerMeasurement() {
+    const user = game.user; // Get the current user
+
+    // Create a new instance of the Ruler for the current user
+    const ruler = new Ruler(user, { color: user.color });
+
+    // Define the initial and final points for the measurement
+    const initialPoint = { x: 1000, y: 100 }; // Starting point for the measurement
+    const finalPoint = { x: 3000, y: 3000 }; // Ending point for the measurement
+
+    // Clear any previous measurements
+    ruler.clear();
+    ruler.waypoints = [initialPoint,finalPoint];
+    // Start the measurement from the initial point
+    
+    canvas.stage.addChild(ruler);
+    // Update the measurement to the final point
+    ruler.measure({ x: finalPoint.x, y: finalPoint.y });
+
+    // Optionally, you can stop the measurement (depending on your use case)
+    // ruler.stop();
+
+    // Display the measurement result in the console
+    
   }

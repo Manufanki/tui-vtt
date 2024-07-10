@@ -1,5 +1,5 @@
 import { moduleName } from "../../tui-vtt.js";
-import { tokenMarker, findToken, debug, compatibleCore, findTokenById } from "../Misc/misc.js";
+import { tokenMarker, findToken, debug, compatibleCore} from "../Misc/misc.js";
 
 export class BaseToken{
     constructor(id, token = undefined) {
@@ -10,14 +10,59 @@ export class BaseToken{
         this.rawCoordinated;
         this.previousPosition;
         this.rotationAngle = 0;
+        this.moveTimeout = false;
+        this.timeoutId = null;
+        this.isDropped = true;
+
+        this.startingPosition = {x:0,y:0};
 
         this.currentField = {x:0,y:0};
         this.marker = new tokenMarker();
         canvas.stage.addChild(this.marker);
         this.marker.init();
+        const user = game.user; // Get the current user
+        this.ruler = new Ruler(user, { color: 0x00FF00 });
+        canvas.stage.addChild(this.ruler);
+        this.rulerText =  new PreciseText("",CONFIG.canvasTextStyle);
+        canvas.stage.addChild(this.rulerText);        
     }
 
+
+    async update(data, scaledCoords,e){
+
+        if (data.x == undefined || data.y == undefined) return false;
+        let coords = {x:data.x,y:data.y}
+        this.rawCoordinates = coords;
+
+        if(this.isDropped){
+            this.startingPosition = {x:this.token.document.x, y:this.token.document.y};
+            this.startingPosition.x += this.token.hitArea.width/2;
+            this.startingPosition.y += this.token.hitArea.height/2;
+            this.isDropped = false;
+        }
+        if (this.token.can(game.user,"control"))
+            this.token.control({releaseOthers:false});
+        this.ruler.waypoints[0] = this.startingPosition;
+
+        this.ruler.measure(scaledCoords);
+        this.ruler.segments.forEach(segment => {
+            segment.label = this.rulerText;
+            segment.label.text = segment.text;
+            segment.label.anchor.set(0.5, 0.5); // Center the text
+            segment.label.position.set(segment.ray.B.x + 10, segment.ray.B.y);
+        })
+
+
+        this.moveToken(scaledCoords);
+        if (game.settings.get(moduleName,'movementMarker') && this.marker != undefined && this.token != undefined) 
+        {
+            this.marker.show();
+        }
+    }
+
+
     async moveToken(coords){
+
         //Compensate for the difference between the center of the token and the top-left of the token, and compensate for token size
         if (compatibleCore('10.0')) {
             coords.x -= this.token.hitArea.width/2;
@@ -271,9 +316,11 @@ export class BaseToken{
      * Calculate the difference between the old coordinates of the token and the last measured coordinates, and move the token there
      */
     async dropToken(){
-        this.isMoving = false;
+        
+        console.log("Dropping token");
         //If no token is controlled, return
-        if (this.token == undefined) return false;
+        if (this.token == undefined) 
+            console.log("Token is undefined in dropToken()");
         
         //this.moveToken(this.currentPosition)
         let newCoords = {
@@ -281,9 +328,7 @@ export class BaseToken{
             y: (this.currentPosition.y-canvas.dimensions.size/2),
             rotation: compatibleCore('10.0') ? this.token.document.rotation : this.token.data.rotation
         }
-
         
-
         if (game.settings.get(moduleName,'collisionPrevention')) {
             newCoords = this.findNearestEmptySpace(newCoords);
         
@@ -312,16 +357,19 @@ export class BaseToken{
             this.requestMovement(this.token,newCoords);
             debug('dropToken',`Token ${this.token.name}, Non-owned token, requesting GM client to be dropped at (${newCoords.x}, ${newCoords.y})`)
         }
-        //Release token, if setting is enabled
-        if (this.token != undefined){
-            this.token.release();
-            this.token = undefined;
-        }
-        
-        this.marker.hide();
+            //Release token, if setting is enabled
+            if (this.token != undefined){
+                this.token.release();
+                this.token = undefined;
+            }
+            this.ruler.clear();
+            canvas.stage.removeChild(this.marker);
+            canvas.stage.removeChild(this.ruler);
+            canvas.stage.removeChild(this.rulerText);
+            this.marker.remove;
+            this.isDropped = true;
         return true;
     }
-
     requestMovement(token,coords){
         let payload = {
             "msgType": "moveToken",

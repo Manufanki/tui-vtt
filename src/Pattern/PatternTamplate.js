@@ -2,25 +2,19 @@ import { createVector, calculateDistance, findCentroid } from "../Misc/misc.js";
 
 export class PatternTamplate{
     constructor(touchPoints, id){
+        this.touchPoints = touchPoints;
+
         if (touchPoints.length !== 3) {
             throw new Error("Triangle must be initialized with exactly 3 touch points.");
         }
         this.center = findCentroid(touchPoints);
-
-        this.angles = touchPoints.map((point, index) => {
-            return {
-                index: index,
-                angle: Math.atan2(point[1] - this.center[1], point[0] - this.center[0])
-            };
-        });
-
-        // Sort the points by angle in counterclockwise order
-        this.angles.sort((a, b) => a.angle - b.angle);
-
-        // Create the sortedPoints array and the index mapping
-        this.sortedVertices = this.angles.map(a => touchPoints[a.index]);
-        this.indexMapping  = this.angles.map(a => a.index);        
         
+        const angles = touchPoints.map(({ x, y }) => {
+            return { x, y, angle: Math.atan2(y - this.center.y, x - this.center.x) * 180 / Math.PI };
+          });
+
+        this.sortedVertices = angles.sort((a, b) => a.angle - b.angle);
+                
         this.sideLengths = [
             calculateDistance(this.sortedVertices[0], this.sortedVertices[1]),
             calculateDistance(this.sortedVertices[1], this.sortedVertices[2]),
@@ -33,26 +27,31 @@ export class PatternTamplate{
         ];
             
         this.featureVectors = [
-            this.sideLengths,
-            [this.sideLengths[1], this.sideLengths[2], this.sideLengths[0]],
-            [this.sideLengths[2], this.sideLengths[0], this.sideLengths[1]]
+            [this.sideLengths[0], this.sideLengths[1], this.sideLengths[2]],
+            [this.sideLengths[2], this.sideLengths[0], this.sideLengths[1]],
+            [this.sideLengths[1], this.sideLengths[2], this.sideLengths[0]]
         ];
         this.id = id;
         this.centerVector = [createVector(this.center, this.sortedVertices[0]),
                             createVector(this.center, this.sortedVertices[1]),
                             createVector(this.center, this.sortedVertices[2])];
 
-        this.verticesAngles = [angleBetweenVectorAndScreen(this.sortedVertices[0]), 
-                            angleBetweenVectorAndScreen(this.sortedVertices[1]), 
-                            angleBetweenVectorAndScreen(this.sortedVertices[2])];
 
         this.sideVectors = [createVector(this.sortedVertices[0], this.sortedVertices[1]), 
                             createVector(this.sortedVertices[1], this.sortedVertices[2]), 
                             createVector(this.sortedVertices[2], this.sortedVertices[1],)];
 
-        this.centerAngles = [angleBetweenVectors(this.centerVector[0], this.sideVectors[0]),
-                            angleBetweenVectors(this.centerVector[1], this.sideVectors[1]),
-                            angleBetweenVectors(this.centerVector[2], this.sideVectors[2])];
+        this.sideAngles =   [angleBetweenVectorAndScreen(this.sideVectors[0]), 
+                            angleBetweenVectorAndScreen(this.sideVectors[1]), 
+                            angleBetweenVectorAndScreen(this.sideVectors[2])];
+
+        this.centerAngles = [angleBetweenVectorAndScreen(this.centerVector[0]), 
+                            angleBetweenVectorAndScreen(this.centerVector[1]), 
+                            angleBetweenVectorAndScreen(this.centerVector[2])];
+
+        this.centerSideAngles = [angleBetweenVectors(this.centerVector[0], this.sideVectors[0]),
+                                angleBetweenVectors(this.centerVector[1], this.sideVectors[1]),
+                                angleBetweenVectors(this.centerVector[2], this.sideVectors[2])];
             
 
         this.detectionThreshold = 50;
@@ -64,16 +63,14 @@ export class PatternTamplate{
 
 }
 
-
 export function recognizePattern(featureVector, featureVectors) {
     var d0 = euclideanNorm(featureVector.map((value, index) => value - featureVectors[0][index]));
     var d1 = euclideanNorm(featureVector.map((value, index) => value - featureVectors[1][index]));
     var d2 = euclideanNorm(featureVector.map((value, index) => value - featureVectors[2][index]));
 
-
     if(d0 < d1 && d0 < d2) 
     {
-        return [d0,2];
+        return [d0,0];
     }
     if(d1 < d0 && d1 < d2)
     {
@@ -81,7 +78,7 @@ export function recognizePattern(featureVector, featureVectors) {
     }
     if(d2 < d1 && d2 < d0)
     {
-        return [d2,0];
+        return [d2,2];
     }
     
     return[1000,0]
@@ -118,12 +115,13 @@ function angleBetweenVectors(v1,v2) {
     return angleRadians;
 }
 export function calculateRotation(originalTemplate, rotatedTemplate, templateId){
-    var rotatedPoint = rotatedTemplate.sortedVertices[templateId];
-
-    var forwardVector = {x: rotatedTemplate.center.x - rotatedPoint.x, y: rotatedTemplate.center.y - rotatedPoint.y};
+    var forwardVector = rotatedTemplate.centerVector[templateId];
     
-    var radians = originalTemplate.centerAngles[0] + angleBetweenVectorAndScreen(forwardVector);
-    var degrees = radians * (180 / Math.PI);
+    var radians = originalTemplate.centerAngles[0] -
+                rotatedTemplate.centerAngles[templateId] + Math.PI; 
+                //angleBetweenVectorAndScreen(forwardVector);
+
+    var degrees = radians * (180 / -Math.PI);
 
     return degrees;
 }

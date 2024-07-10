@@ -1,5 +1,4 @@
 import { moduleName } from "../../tui-vtt.js";
-import { tokenMarker, findToken, debug, compatibleCore, findTokenById } from "../Misc/misc.js";
 import { BaseToken } from "./BaseToken.js";
 
 export class TouchToken extends BaseToken{
@@ -8,47 +7,18 @@ export class TouchToken extends BaseToken{
         this.rotationPosition;
         this.rotationThreshold;
         this.rotationHistory = [];
-        this.patternTouchIds = [];
         this.currentField = {x:0,y:0};
     }
 
-    async update(data, scaledCoords, forceNew =false,e){
-        
-        if (data.x == undefined || data.y == undefined) return false;
-        let coords = {x:data.x,y:data.y}
-        this.rawCoordinates = coords;
-    
-        if (this.token == undefined || forceNew) 
-        {
-            //Find the nearest token to the scaled coordinates
-            if (this.token == undefined) 
-            {
-                this.token = findToken( scaledCoords );
 
-            }
-            if (this.token == undefined) {
-                debug('updateMovement','No token found')
-                return false;
-            }
-
-            if (this.token.can(game.user,"control") == false && game.settings.get(moduleName,'EnNonOwned') == false) {
-                this.token = undefined;
-                debug('updateMovement',`User can't control token ${this.token.name}`)
-                return false;
-            }
-            this.rotationThreshold = game.settings.get(moduleName,'rotationThreshold');
-            this.currentPosition = {x:this.token.x+canvas.dimensions.size/2, y:this.token.y+canvas.dimensions.size/2}
-            this.previousPosition = this.currentPosition;
-            this.controlledToken = this.token;
-            this.originPosition = {x:this.token.x, y:this.token.y};
-        }
-        if (this.token.can(game.user,"control"))
-            this.token.control({releaseOthers:false});
-        
-        this.moveToken(scaledCoords);
-        if (game.settings.get(moduleName,'movementMarker') && this.marker != undefined && this.token != undefined) this.marker.show();
-            return true;
+    initialize(){
+        this.rotationThreshold = game.settings.get(moduleName,'rotationThreshold');
+        this.currentPosition = {x:this.token.x+canvas.dimensions.size/2, y:this.token.y+canvas.dimensions.size/2}
+        this.previousPosition = this.currentPosition;
+        this.controlledToken = this.token;
+        this.originPosition = {x:this.token.x, y:this.token.y};
     }
+
 
     async rotateToken(coords, currentPos){
         // Rotate the token

@@ -51,7 +51,7 @@
     "TUI-VTT.Config.PatternSetup": "Pattern Setup",
     "TUI-VTT.Config.PatternSetup_Hint": "Configure patterns to be linked to specific tokens or actors.",
     "TUI-VTT.Config.TemplateId": "ID",
-    "TUI-VTT.Config.Rotation": "Initial Rotation",
+    "TUI-VTT.Config.FeatureTemplate": "Feature Template",
     "TUI-VTT.Config.DetectionThreshold": " Detection Threshold", 
 
     "TUI-VTT.Config.Data": "Detect",
