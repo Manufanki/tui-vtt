@@ -3,6 +3,8 @@ import { PatternTamplate } from "../Pattern/PatternTamplate.js";
 import { waitForPatternTouchs } from "../analyzeTouch.js";
 
 export const registerSettings = function(){
+
+
      /**
      * Touch timeout
      */
@@ -12,6 +14,17 @@ export const registerSettings = function(){
         scope: 'world',
         range: { min: 10, max: 5000, step: 10 },
         config: false,
+    });
+
+        /**
+     * DoubleTap timeout
+     */
+    game.settings.register(moduleName, 'doubletapTimeout', {
+        default: 10,
+        type: Number,
+        scope: 'world',
+        range: { min: 10, max: 5000, step: 10 },
+        config: false, 
     });
 
     /**
@@ -197,6 +210,7 @@ export class tuiConfig extends FormApplication{
             hideElements: game.settings.get(moduleName,'HideElements'),
             touchTimeout: game.settings.get(moduleName,'touchTimeout'),
             tapTimeout: game.settings.get(moduleName,'tapTimeout'),
+            doubletapTimeout: game.settings.get(moduleName,'doubletapTimeout'),
             touchScaleX: game.settings.get(moduleName,'touchScaleX'),
             touchScaleY: game.settings.get(moduleName,'touchScaleY'),
             zoomFactor: game.settings.get(moduleName,'zoomFactor'),
@@ -262,6 +276,18 @@ export class tuiConfig extends FormApplication{
              html.find("input[id=tuiTapTimeoutNumber]")[0].value = val;
              this.setSettings('tapTimeout',val);
          });
+         html.find("input[id=tuiDoubletapTimeout]").on('change', event => {
+            const val = event.target.value;
+            html.find("input[id=tuiDoubletapTimeout]")[0].value = val;
+            html.find("input[id=tuiDoubletapTimeoutNumber]")[0].value = val;
+            this.setSettings('doubletapTimeout',val);
+        });
+        html.find("input[id=tuiDoubletapTimeoutNumber]").on('change', event => {
+            const val = event.target.value;
+            html.find("input[id=tuiDoubletapTimeout]")[0].value = val;
+            html.find("input[id=tuiDoubletapTimeoutNumber]")[0].value = val;
+            this.setSettings('doubletapTimeout',val);
+        });
          html.find("input[id=tuiTouchScaleX]").on('change', event => {
              html.find("input[id=tuiTouchScaleXNumber]")[0].value = event.target.value;
              this.setSettings('touchScaleX', event.target.value);

@@ -14,6 +14,7 @@ export class Touch{
         this.touchType = type;
         this.timeout = false;
         this.patternStack = [];
+        this.doubleTap = false;
     }
     setStartCoordinates(){
         this.startCoord = {x: this.touch.screenX, y: this.touch.screenY};

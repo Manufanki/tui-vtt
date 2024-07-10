@@ -38,6 +38,8 @@
     "TUI-VTT.Config.TouchTimeout_Hint": "Time in milliseconds after which a token is dropped if no new touch is detected.",
     "TUI-VTT.Config.TapTimeout": "Tap Timeout (ms)",
     "TUI-VTT.Config.TapTimeout_Hint": "Sets the timeout (in ms) to detect a tap. The exact function depends on 'Tap Mode'. For 'Tap Timeout', the value should be relatively small (probably 500ms or smaller), while for 'Raise Mini' it should be bigger (probably 1000 to 2000ms).",
+    "TUI-VTT.Config.DoubletapTimeout": "Doubletap Timeout (ms)",
+    "TUI-VTT.Config.DoubletapTimeout_Hint": "Sets the timeout (in ms) to detect a doubletap.",
 
     "TUI-VTT.Config.ScaleX": "X Scale",
     "TUI-VTT.Config.ScaleX_Hint": "Scales all coordinates on the X-axis by a set value to fix alignment issues.",

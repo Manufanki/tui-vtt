@@ -8,6 +8,7 @@ import { PatternTamplate, recognizePattern, calculateRotation } from "./Pattern/
 
 
 let Touches = [];
+let endedTouches = [];
 let TouchTokens = [];
 let PatternTokens = [];
 let pauseTimeoutCheck = false;
@@ -50,32 +51,40 @@ export async function analyzeTouch(type,data) {
         const coordinates = {x: touch.screenX, y: touch.screenY};
         const scaledCoordinates = scaleTouchInput(coordinates);
         const forceNew = type == 'start';
-        getTouch(id).addToPatternStack();
+        var pTouch = getTouch(id);
+        pTouch.addToPatternStack();
         //A new Touch was pressed
         if (type == 'start')
         {   
             //startRulerMeasurement();
-            getTouch(id).setStartCoordinates();
-
+            pTouch.setStartCoordinates();
+            if(getEndedTouch(id) != undefined)
+                pTouch.doubleTap = true;
             // if only one touch is in the canvas it is a generic touch or a touchToken
             if(Touches.length == 1)
             {
                 resetNavigation();
                 // move token returns false if no token was found  
                 if (await findTouchToken(id,coordinates,scaledCoordinates,forceNew,data)){
-                    getTouch(id).touchType = TouchType.Token;
+                    pTouch.touchType = TouchType.Token;
                 }
                 // if a touch is not a token, it is a generic touch
                 else
                 {
-                    getTouch(id).touchType = TouchType.Generic;
+                    pTouch.touchType = TouchType.Generic;
+
+                    if(pTouch.doubleTap == true)
+                    {
+                        canvas.stage.addChild(ruler);
+                        canvas.stage.addChild(rulerText);
+                    }
                 }
             }
             // if only two touches are in the canvas it is a navigation or a two touchTokens
             else if(Touches.length == 2)
             {
                 if (await findTouchToken(id,coordinates,scaledCoordinates,forceNew,data)){
-                    getTouch(id).touchType = TouchType.Token;
+                    pTouch.touchType = TouchType.Token;
                 }
                 else
                 {
@@ -86,8 +95,6 @@ export async function analyzeTouch(type,data) {
                         startZoom = canvas.stage.scale._y;
                         genericTouches.forEach(nav => {
                             nav.touchType = TouchType.Navigation;
-                            canvas.stage.addChild(ruler);
-                            canvas.stage.addChild(rulerText);
                         });
                     }
                 }
@@ -97,7 +104,7 @@ export async function analyzeTouch(type,data) {
             {
                 resetNavigation();
                 if (await findTouchToken(id,coordinates,scaledCoordinates,forceNew,data)){
-                    getTouch(id).touchType = TouchType.Token;
+                    pTouch.touchType = TouchType.Token;
                 }
                 else{
                     // var genericTouches = getTouchesByType(TouchType.Generic);
@@ -111,55 +118,33 @@ export async function analyzeTouch(type,data) {
         else if (type == 'move')
         {
             // if a token touch is moved it is moved
-            if (getTouch(id).touchType === TouchType.Token) {
+            if (pTouch.touchType === TouchType.Token) {
                 await updateTouchToken(id,coordinates,scaledCoordinates,forceNew,data);
             }
             // if a two navigation touches are in the canvas the navigation logic is called 
-            if (getTouch(id).touchType === TouchType.Navigation) {
+            if (pTouch.touchType === TouchType.Navigation) {
                 var navTouch = getTouchesByType(TouchType.Navigation);
                 if(navTouch.length == 2)
-                {
-                    let measureId = -1;
-                    // for (let i = 0; i < navTouch.length; i++) {
-                    //     let nav = navTouch[i];
-                    //     var distance = calculateDistance(nav.touch.screenX,nav.touch.screenY,nav.startCoord.x,nav.startCoord.y);
-                    //     if(distance < 10)
-                    //     {
-                    //         measureId = i;
-                    //     }
-                    // } 
-                    if(measureId == -1) {
-                        var navTouchIds = [navTouch[0].id,navTouch[1].id];
-                        setTimeout (navigationTimeout,100,navTouchIds);
-                    }
-                    else if (measureId == 0) {
-                        ruler.waypoints[0] = scaleTouchInput({x: navTouch[0].touch.screenX, y: navTouch[0].touch.screenY}); 
-                        ruler.measure(scaleTouchInput({x: navTouch[1].touch.screenX, y: navTouch[1].touch.screenY}) );
-                        ruler.segments.forEach(segment => {
-                            segment.label = rulerText;
-                            segment.label.text = segment.text;
-                            segment.label.anchor.set(0.5, 0.5); // Center the text
-                            segment.label.position.set(segment.ray.B.x + 10, segment.ray.B.y);
-                        })
-                    }
-                    else if (measureId == 1) {
-                        ruler.waypoints[0] = scaleTouchInput({x: navTouch[1].touch.screenX, y: navTouch[1].touch.screenY}); 
-                        ruler.measure(scaleTouchInput({x: navTouch[0].touch.screenX, y: navTouch[0].touch.screenY}) );
-                        ruler.segments.forEach(segment => {
-                            segment.label = rulerText;
-                            segment.label.text = segment.text;
-                            segment.label.anchor.set(0.5, 0.5); // Center the text
-                            segment.label.position.set(segment.ray.B.x + 10, segment.ray.B.y);
-                        })
-                    }
-                    
+                {                   
+                    var navTouchIds = [navTouch[0].id,navTouch[1].id];
+                    setTimeout (navigationTimeout,100,navTouchIds); 
                 }
             }
-            if(getTouch(id).touchType === TouchType.Generic)
+            if(pTouch.touchType === TouchType.Generic)
             {
+                if(pTouch.doubleTap == true){
+                    ruler.waypoints[0] = scaleTouchInput(pTouch.startCoord); 
+                        ruler.measure(scaleTouchInput({x: pTouch.touch.screenX, y: pTouch.touch.screenY}) );
+                        ruler.segments.forEach(segment => {
+                            segment.label = rulerText;
+                            segment.label.text = segment.text;
+                            segment.label.anchor.set(0.5, 0.5); // Center the text
+                            segment.label.position.set(segment.ray.B.x + 10, segment.ray.B.y);
+                        })
+                }
                 patternRecognition(id, data,20);
             }
-            if(getTouch(id).touchType === TouchType.Pattern)
+            if(pTouch.touchType === TouchType.Pattern)
             {
                 patternUpdate(id, data);
             }
@@ -167,12 +152,19 @@ export async function analyzeTouch(type,data) {
         // Touch released or canceled
         else if (type == 'end') {
             // if a generic touch ends it is handled like a click to open doors
-            if (getTouch(id).touchType === TouchType.Generic) 
+            if (pTouch.touchType === TouchType.Generic) 
             {
+                if(pTouch.doubleTap == true)
+                {
+                    ruler.clear();
+                    canvas.stage.removeChild(ruler);
+                    canvas.stage.removeChild(rulerText);
+                }
+
                 genericTouch(type,coordinates,scaledCoordinates);
             }
             // if a token touch ends it is dropped
-            else if(getTouch(id).touchType === TouchType.Token)
+            else if(pTouch.touchType === TouchType.Token)
             {
                 var tToken = GetTouchTokenById(id);
                 blockedTokens = removeFromArrayByValue(blockedTokens,tToken.token);
@@ -187,14 +179,11 @@ export async function analyzeTouch(type,data) {
                 }
             }
             // if a navigation touch ends it is stopped and the zoom is reset
-            else if(getTouch(id).touchType === TouchType.Navigation)
+            else if(pTouch.touchType === TouchType.Navigation)
             {
-                ruler.clear();
-                canvas.stage.removeChild(ruler);
-                canvas.stage.removeChild(rulerText);
                 resetNavigation();
             }
-            else if(getTouch(id).touchType === TouchType.Pattern)
+            else if(pTouch.touchType === TouchType.Pattern)
             {
                 var pToken = GetPatternTokenByTouchId(id);
                 if(pToken != undefined)
@@ -216,6 +205,9 @@ export async function analyzeTouch(type,data) {
                     }
                 }
             }
+            endedTouches.push(pTouch);
+            var doubleTapTimeout = game.settings.get(moduleName, 'doubletapTimeout');
+            setTimeout(()=>{endedTouches = removeFromArrayById(endedTouches,id); }, doubleTapTimeout);
             Touches = removeFromArrayById(Touches,id);        //deletes the Touch Object from the array
         }
        
@@ -443,6 +435,14 @@ function getTouch(id){
     if(Touches.some(t => t.id == id)) {
         const index = Touches.findIndex(t => t.id == id);
         return Touches[index];
+    }
+    return undefined;
+}
+
+function getEndedTouch(id){
+    if(endedTouches.some(t => t.id == id)) {
+        const index = endedTouches.findIndex(t => t.id == id);
+        return endedTouches[index];
     }
     return undefined;
 }

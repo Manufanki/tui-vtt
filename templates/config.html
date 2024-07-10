@@ -225,8 +225,8 @@
     </script>
 
     <div class="tuiConfigTab">
-        <button type="button" class="tuiConfigTabLinks active" onclick="openTab(event, 'tuiConfigGeneral')">{{localize "TUI-VTT.Config.General"}}</button>
-        <button type="button" class="tuiConfigTabLinks" onclick="openTab(event, 'tuiConfigTouch')">{{localize "TUI-VTT.Config.Touch"}}</button>
+        <button type="button" class="tuiConfigTabLinks active" onclick="openTab(event, 'tuiConfigGeneral')"{{#ifCond user 'gm'}}style="display:none"{{/ifCond}}>{{localize "TUI-VTT.Config.General"}}</button>
+        <button type="button" class="tuiConfigTabLinks" onclick="openTab(event, 'tuiConfigTouch')"{{#ifCond user 'gm'}}style="display:none"{{/ifCond}}>{{localize "TUI-VTT.Config.Touch"}}</button>
         <button type="button" class="tuiConfigTabLinks tuiBeta" onclick="openTab(event, 'tuiConfigPattern')">{{localize "TUI-VTT.Config.PatternSetup"}}</button>
 
     </div>
@@ -336,6 +336,17 @@
             </div>
         </div>
         <p class="tuiConfigNotes">{{localize "TUI-VTT.Config.TapTimeout_Hint"}}</p>
+
+        <!-- DoubleTap Timeout -->
+        <div class="tuiConfigFormElements">
+            <label for="tuiDoubletapTimeout">{{localize "TUI-VTT.Config.DoubletapTimeout"}}</label>
+            <div class="tuiConfigFormValRange">
+                <input type="range" id="tuiDoubletapTimeout" min=10 max=5000 step=10 value={{doubletapTimeout}}>
+                <input type="number" id="tuiDoubletapTimeoutNumber" value={{doubletapTimeout}}>
+            </div>
+        </div>
+        <p class="tuiConfigNotes">{{localize "TUI-VTT.Config.DoubletapTimeout_Hint"}}</p>
+    
 
         <!-- X Scale -->
         <div class="tuiConfigFormElements">

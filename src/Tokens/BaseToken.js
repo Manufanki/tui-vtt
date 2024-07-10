@@ -49,7 +49,7 @@ export class BaseToken{
             segment.label = this.rulerText;
             segment.label.text = segment.text;
             segment.label.anchor.set(0.5, 0.5); // Center the text
-            segment.label.position.set(segment.ray.B.x + 10, segment.ray.B.y);
+            segment.label.position.set(segment.ray.B.x + 10, segment.ray.B.y-100);
         })
 
 

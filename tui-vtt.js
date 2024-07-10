@@ -28,6 +28,11 @@ Handlebars.registerHelper('ifNCond', function(v1, v2, options) {
 
 
 Hooks.on('ready',()=>{
+
+    let user = 'gm';
+    if (!game.user.isGM) 
+        user = 'observer';
+
     console.log("TUI_READY"); 
     enableModule = game.user.name == game.settings.get(moduleName,'TargetName');
     hideElements = game.settings.get(moduleName,'HideElements') && game.user.isGM == false;
