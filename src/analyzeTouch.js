@@ -710,6 +710,8 @@ function checkDoorClick(data) {
 
 export function waitForPatternTouchs(id, detectionThreshold = 0) {
     return new Promise((resolve, reject) => {
+
+        var detectionSamples = game.settings.get(moduleName, 'detectionSamples');
         let pointsA = [];
         let pointsB = [];
         let pointsC = [];
@@ -721,7 +723,7 @@ export function waitForPatternTouchs(id, detectionThreshold = 0) {
                 pointsB.push(normalized[1]);
                 pointsC.push(normalized[2]);
             }
-            if(pointsA.length > 200)
+            if(pointsA.length > detectionSamples)
                 {
                 clearInterval(interval);
                 var patternTemplate= new PatternTamplate([averageVectorList(pointsA),averageVectorList(pointsB),averageVectorList(pointsC)], id);

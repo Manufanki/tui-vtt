@@ -98,6 +98,16 @@ export const registerSettings = function(){
         default: true,
         type: Boolean
     });
+
+    /**
+     * Draw Token ruler
+     */
+    game.settings.register(moduleName,'tokenRuler', {
+        scope: "world",
+        config: false,
+        default: true,
+        type: Boolean
+    });
     /**
  * Allow Navigation
  */
@@ -168,6 +178,28 @@ export const registerSettings = function(){
         type: Number,
         default: -1
       });
+
+                  /**
+     * Default Detection Threshold
+     */
+    game.settings.register(moduleName, 'defaultDetectionThreshold', {
+        default: 10,
+        type: Number,
+        scope: 'world',
+        range: { min: 5, max: 200, step: 5 },
+        config: false, 
+    });
+
+    /**
+     * Detection Samples
+    */
+    game.settings.register(moduleName, 'detectionSamples', {
+        default: 200,
+        type: Number,
+        scope: 'world',
+        range: { min: 5, max: 2000, step: 5 },
+        config: false, 
+    });
 }
 
 
@@ -204,18 +236,20 @@ export class tuiConfig extends FormApplication{
             targetName: game.settings.get(moduleName,'TargetName'),
             deselect: game.settings.get(moduleName,'deselect'),
             movementMarker: game.settings.get(moduleName,'movementMarker'),
+            tokenRuler : game.settings.get(moduleName,'tokenRuler'),
             touchNavigation: game.settings.get(moduleName,'touchNavigation'),
             nonOwnedMovement: game.settings.get(moduleName,'EnNonOwned'),
             collision: game.settings.get(moduleName,'collisionPrevention'),
             hideElements: game.settings.get(moduleName,'HideElements'),
             touchTimeout: game.settings.get(moduleName,'touchTimeout'),
+            defaultDetectionThreshold: game.settings.get(moduleName,'defaultDetectionThreshold'),
+            detectionSamples: game.settings.get(moduleName,'detectionSamples'),
             tapTimeout: game.settings.get(moduleName,'tapTimeout'),
             doubletapTimeout: game.settings.get(moduleName,'doubletapTimeout'),
             touchScaleX: game.settings.get(moduleName,'touchScaleX'),
             touchScaleY: game.settings.get(moduleName,'touchScaleY'),
             zoomFactor: game.settings.get(moduleName,'zoomFactor'),
             rotationThreshold: game.settings.get(moduleName,'rotationThreshold'),
-
             patternSetup : this.patternSettings,
         }
         return data;
@@ -243,6 +277,7 @@ export class tuiConfig extends FormApplication{
         html.find("input[id=tuiTargetName]").on('change', event =>       { this.setSettings('TargetName',event.target.value); this.restart = true; });
         html.find("input[id=tuiDeselect]").on('change', event =>         { this.setSettings('deselect',event.target.checked); });
         html.find("input[id=tuiMovementMarker]").on('change', event =>   { this.setSettings('movementMarker',event.target.checked); });
+        html.find("input[id=tuiTokenRuler]").on('change', event =>   { this.setSettings('tokenRuler',event.target.checked); });
         html.find("input[id=tuiTouchNavigation]").on('change', event =>   { this.setSettings('touchNavigation',event.target.checked); });
         html.find("input[id=tuiNonOwned]").on('change', event =>         { this.setSettings('EnNonOwned',event.target.checked); });
         html.find("input[id=tuiCollision]").on('change', event =>        { this.setSettings('collisionPrevention',event.target.checked); });
@@ -251,7 +286,6 @@ export class tuiConfig extends FormApplication{
 
 
          // --- Touch settings ---
-         html.find("select[id=tuiTapMode]").on('change', event =>         { this.setSettings('tapMode',event.target.value); });
          html.find("input[id=tuiTouchTimeout]").on('change', event => {
              const val = event.target.value;
              html.find("input[id=tuiTouchTimeout]")[0].value = val;
@@ -329,6 +363,32 @@ export class tuiConfig extends FormApplication{
             await this.setSettings('patternSetup',this.patternSettings);
             this.buildPatternTable();
         })
+
+        html.find("input[id=tuiDefaultDetectionThreshold]").on('change', event => {
+            const val = event.target.value;
+            html.find("input[id=tuiDefaultDetectionThreshold]")[0].value = val;
+            html.find("input[id=tuiDefaultDetectionThresholdNumber]")[0].value = val;
+            this.setSettings('defaultDetectionThreshold',val);
+        });
+        html.find("input[id=tuiDefaultDetectionThresholdNumber]").on('change', event => {
+            const val = event.target.value;
+            html.find("input[id=tuiDefaultDetectionThreshold]")[0].value = val;
+            html.find("input[id=tuiDefaultDetectionThresholdNumber]")[0].value = val;
+            this.setSettings('defaultDetectionThreshold',val);
+        });
+
+        html.find("input[id=tuiDetectionSamples]").on('change', event => {
+            const val = event.target.value;
+            html.find("input[id=tuiDetectionSamples]")[0].value = val;
+            html.find("input[id=tuiDetectionSamplesNumber]")[0].value = val;
+            this.setSettings('detectionSamples',val);
+        });
+        html.find("input[id=tuiDetectionSamplesNumber]").on('change', event => {
+            const val = event.target.value;
+            html.find("input[id=tuiDetectionSamples]")[0].value = val;
+            html.find("input[id=tuiDetectionSamplesNumber]")[0].value = val;
+            this.setSettings('detectionSamples',val);
+        });
 
  
     }

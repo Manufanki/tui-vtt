@@ -245,8 +245,6 @@
         </div>
         <p class="tuiConfigNotes">{{localize "TUI-VTT.Config.TargetName_Hint"}}</p>
 
-        <p class="tuiConfigNotes">{{localize "TUI-VTT.Config.MovementMethod_Hint"}}</p>
-
         <!-- Deselect Token After Drop -->
         <div class="tuiConfigFormElements">
             <label for="tuiDeselect">{{localize "TUI-VTT.Config.Deselect"}}</label>
@@ -256,7 +254,7 @@
         </div>
         <p class="tuiConfigNotes">{{localize "TUI-VTT.Config.Deselect_Hint"}}</p>
 
-        <!-- Hide Display Elements -->
+        <!-- Show Movement Marker -->
         <div class="tuiConfigFormElements">
             <label for="tuiMovementMarker">{{localize "TUI-VTT.Config.MovementMarker"}}</label>
             <div class="tuiConfigFormVal">
@@ -264,6 +262,15 @@
             </div>
         </div>
         <p class="tuiConfigNotes">{{localize "TUI-VTT.Config.MovementMarker_Hint"}}</p>
+
+        <!-- Show Token Ruler -->
+        <div class="tuiConfigFormElements">
+            <label for="tuiTokenRuler">{{localize "TUI-VTT.Config.TokenRuler"}}</label>
+            <div class="tuiConfigFormVal">
+                <input type="checkbox" id="tuiTokenRuler" {{#if tokenRuler}}checked{{/if}}>
+            </div>
+        </div>
+        <p class="tuiConfigNotes">{{localize "TUI-VTT.Config.TokenRuler_Hint"}}</p>
         
         <!-- Allow Navigation -->
         <div class="tuiConfigFormElements">
@@ -299,7 +306,7 @@
                 <input type="checkbox" id="tuiHideDisplay"  {{#if hideElements}}checked{{/if}}>
             </div>
         </div>
-        <p class="tuiConfigNotes">{{localize "TUI-VTT.Config.HideDisplay_Hint"}}</p> -->
+        <p class="tuiConfigNotes">{{localize "TUI-VTT.Config.HideDisplay_Hint"}}</p>
         
         <!-- Block Interaction -->
         <div class="tuiConfigFormElements">
@@ -317,7 +324,7 @@
 
         <hr>
 
-        <!-- Touch Timeout -->
+        <!-- Touch Timeout 
         <div class="tuiConfigFormElements">
             <label for="tuiTouchTimeout">{{localize "TUI-VTT.Config.TouchTimeout"}}</label>
             <div class="tuiConfigFormValRange">
@@ -325,9 +332,9 @@
                 <input type="number" id="tuiTouchTimeoutNumber" value={{touchTimeout}}>
             </div>
         </div>
-        <p class="tuiConfigNotes">{{localize "TUI-VTT.Config.TouchTimeout_Hint"}}</p>
+        <p class="tuiConfigNotes">{{localize "TUI-VTT.Config.TouchTimeout_Hint"}}</p>-->
 
-        <!-- Tap Timeout -->
+        <!-- Tap Timeout 
         <div class="tuiConfigFormElements">
             <label for="tuiTapTimeout">{{localize "TUI-VTT.Config.TapTimeout"}}</label>
             <div class="tuiConfigFormValRange">
@@ -335,7 +342,7 @@
                 <input type="number" id="tuiTapTimeoutNumber" value={{tapTimeout}}>
             </div>
         </div>
-        <p class="tuiConfigNotes">{{localize "TUI-VTT.Config.TapTimeout_Hint"}}</p>
+        <p class="tuiConfigNotes">{{localize "TUI-VTT.Config.TapTimeout_Hint"}}</p>-->
 
         <!-- DoubleTap Timeout -->
         <div class="tuiConfigFormElements">
@@ -391,6 +398,27 @@
 
     <div id="tuiConfigPattern" class="tuiConfigTabContent" style="display: none">
         
+        <!-- Default Detection Threshold -->
+        <div class="tuiConfigFormElements">
+            <label for="tuiDefaultDetectionThreshold">{{localize "TUI-VTT.Config.DefaultDetectionThreshold"}}</label>
+            <div class="tuiConfigFormValRange">
+                <input type="range" id="tuiDefaultDetectionThreshold" min=5 max=200 step=5 value={{defaultDetectionThreshold}}>
+                <input type="number" id="tuiDefaultDetectionThresholdNumber" value={{defaultDetectionThreshold}}>
+            </div>
+        </div>
+        <p class="tuiConfigNotes">{{localize "TUI-VTT.Config.DefaultDetectionThreshold_Hint"}}</p>
+
+        <!-- Detection Samples -->
+        <div class="tuiConfigFormElements">
+            <label for="tuiDetectionSamples">{{localize "TUI-VTT.Config.DetectionSamples"}}</label>
+            <div class="tuiConfigFormValRange">
+                <input type="range" id="tuiDetectionSamples" min=5 max=2000 step=5 value={{detectionSamples}}>
+                <input type="number" id="tuiDetectionSamplesNumber" value={{detectionSamples}}>
+            </div>
+        </div>
+        <p class="tuiConfigNotes">{{localize "TUI-VTT.Config.DetectionSamples_Hint"}}</p>
+        
+        <!-- Pattern Setup -->
         <p class="tuiNotes">{{localize "TUI-VTT.Config.PatternSetup_Hint"}}</p>
         
         <header class="tuiPatternTableHeader flexrow" style="margin-bottom:5px;width:100%">

@@ -1,6 +1,3 @@
-import { moduleName } from "../../tui-vtt.js";
-import { tokenMarker, findToken, debug, compatibleCore } from "../Misc/misc.js";
-import { PatternTamplate } from "../Pattern/PatternTamplate.js";
 import { BaseToken } from "./BaseToken.js";
 export class PatternToken extends BaseToken{
     constructor(id, token, touchIds, patternTemplate) {

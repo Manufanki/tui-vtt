@@ -42,16 +42,19 @@ export class BaseToken{
         }
         if (this.token.can(game.user,"control"))
             this.token.control({releaseOthers:false});
-        this.ruler.waypoints[0] = this.startingPosition;
 
-        this.ruler.measure(scaledCoords);
-        this.ruler.segments.forEach(segment => {
-            segment.label = this.rulerText;
-            segment.label.text = segment.text;
-            segment.label.anchor.set(0.5, 0.5); // Center the text
-            segment.label.position.set(segment.ray.B.x + 10, segment.ray.B.y-100);
-        })
+        if (game.settings.get(moduleName,'tokenRuler') && this.ruler != undefined) 
+        {
+            this.ruler.waypoints[0] = this.startingPosition;
 
+            this.ruler.measure(scaledCoords);
+            this.ruler.segments.forEach(segment => {
+                segment.label = this.rulerText;
+                segment.label.text = segment.text;
+                segment.label.anchor.set(0.5, 0.5); // Center the text
+                segment.label.position.set(segment.ray.B.x + 10, segment.ray.B.y-100);
+            })
+        }
 
         this.moveToken(scaledCoords);
         if (game.settings.get(moduleName,'movementMarker') && this.marker != undefined && this.token != undefined) 
@@ -187,6 +190,11 @@ export class BaseToken{
         //     y: (this.currentPosition.y-canvas.dimensions.size/2),
         //     rotation: compatibleCore('10.0') ? this.token.document.rotation : this.token.data.rotation
         // }
+
+        if (game.settings.get(moduleName,'tokenRuler')) {
+            const color = collision ? "0xFF0000" : "0x00FF00"
+            this.ruler.color = color;
+        }
 
         //Draw the movement marker
         if (game.settings.get(moduleName,'movementMarker')) {

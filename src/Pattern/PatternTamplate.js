@@ -1,4 +1,5 @@
 import { createVector, calculateDistance, findCentroid } from "../Misc/misc.js";
+import {moduleName} from "../../tui-vtt.js";
 
 export class PatternTamplate{
     constructor(touchPoints, id){
@@ -53,8 +54,8 @@ export class PatternTamplate{
                                 angleBetweenVectors(this.centerVector[1], this.sideVectors[1]),
                                 angleBetweenVectors(this.centerVector[2], this.sideVectors[2])];
             
-
-        this.detectionThreshold = 50;
+        var detectionThreshold = game.settings.get(moduleName,'defaultDetectionThreshold');
+        this.detectionThreshold = detectionThreshold;
     }
 
     debug(){
